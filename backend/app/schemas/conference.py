@@ -1,3 +1,4 @@
+import uuid
 from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
@@ -34,7 +35,7 @@ class ConferenceUpdate(BaseModel):
 class ConferenceRead(ConferenceBase):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
+    id: uuid.UUID
     created_at: datetime
     updated_at: datetime
 

@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
@@ -16,8 +17,8 @@ class CommentUpdate(BaseModel):
 class CommentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
-    presentation_id: str
+    id: uuid.UUID
+    presentation_id: uuid.UUID
     author: str | None = None
     body: str
     created_at: datetime
@@ -25,7 +26,7 @@ class CommentRead(BaseModel):
 
 
 class AnnotationCreate(BaseModel):
-    attachment_id: str | None = None
+    attachment_id: uuid.UUID | None = None
     selected_text: str | None = None
     note: str
     color: str | None = None
@@ -44,9 +45,9 @@ class AnnotationUpdate(BaseModel):
 class AnnotationRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
-    presentation_id: str
-    attachment_id: str | None = None
+    id: uuid.UUID
+    presentation_id: uuid.UUID
+    attachment_id: uuid.UUID | None = None
     selected_text: str | None = None
     note: str
     color: str | None = None

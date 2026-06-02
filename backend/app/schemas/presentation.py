@@ -1,11 +1,12 @@
+import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
 
 class PresentationBase(BaseModel):
-    conference_id: str
-    session_id: str | None = None
+    conference_id: uuid.UUID
+    session_id: uuid.UUID | None = None
     source_presentation_id: str | None = None
     source_content_id: str | None = None
     title: str
@@ -80,7 +81,7 @@ class PresentationUpdate(BaseModel):
 class AuthorRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
+    id: uuid.UUID
     display_name: str
     normalized_name: str | None = None
     role: str | None = None
@@ -95,7 +96,7 @@ class AuthorRead(BaseModel):
 class AttachmentRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
+    id: uuid.UUID
     original_filename: str
     content_type: str | None = None
     file_size: int | None = None
@@ -106,7 +107,7 @@ class AttachmentRead(BaseModel):
 class PresentationRead(PresentationBase):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
+    id: uuid.UUID
     created_at: datetime
     updated_at: datetime
     authors: list[AuthorRead] = []

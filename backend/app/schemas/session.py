@@ -1,10 +1,11 @@
+import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
 
 class SessionBase(BaseModel):
-    conference_id: str
+    conference_id: uuid.UUID
     source_session_id: str | None = None
     title: str
     session_type: str | None = None
@@ -39,7 +40,7 @@ class SessionUpdate(BaseModel):
 class SessionRead(SessionBase):
     model_config = ConfigDict(from_attributes=True)
 
-    id: str
+    id: uuid.UUID
     created_at: datetime
     updated_at: datetime
 
