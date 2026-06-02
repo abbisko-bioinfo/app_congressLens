@@ -7,6 +7,7 @@ from app.api.presentations import router as presentations_router
 from app.api.interactions import router as interactions_router
 from app.api.watchlist import router as watchlist_router
 from app.api.importer import router as importer_router
+from app.api.attachments import router as attachments_router
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(health_router, tags=["health"])
@@ -16,3 +17,4 @@ api_router.include_router(presentations_router)
 api_router.include_router(interactions_router)
 api_router.include_router(watchlist_router)
 api_router.include_router(importer_router)
+api_router.include_router(attachments_router)
