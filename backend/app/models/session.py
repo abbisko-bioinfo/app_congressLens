@@ -1,7 +1,9 @@
+import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDMixin, TimestampMixin
@@ -14,7 +16,7 @@ if TYPE_CHECKING:
 class Session(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "sessions"
 
-    conference_id: Mapped[str] = mapped_column(ForeignKey("conferences.id", ondelete="CASCADE"), nullable=False)
+    conference_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("conferences.id", ondelete="CASCADE"), nullable=False)
     source_session_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     title: Mapped[str] = mapped_column(Text, nullable=False)
     session_type: Mapped[str | None] = mapped_column(String(100), nullable=True)

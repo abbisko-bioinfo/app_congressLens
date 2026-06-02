@@ -1,7 +1,9 @@
 from typing import TYPE_CHECKING
 
+import uuid
+
 from sqlalchemy import ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDMixin, TimestampMixin
@@ -14,8 +16,8 @@ if TYPE_CHECKING:
 class Annotation(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "annotations"
 
-    presentation_id: Mapped[str] = mapped_column(ForeignKey("presentations.id", ondelete="CASCADE"), nullable=False)
-    attachment_id: Mapped[str | None] = mapped_column(ForeignKey("attachments.id", ondelete="SET NULL"), nullable=True)
+    presentation_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("presentations.id", ondelete="CASCADE"), nullable=False)
+    attachment_id: Mapped[uuid.UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("attachments.id", ondelete="SET NULL"), nullable=True)
     selected_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     note: Mapped[str] = mapped_column(Text, nullable=False)
     color: Mapped[str | None] = mapped_column(String(50), nullable=True)

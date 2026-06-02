@@ -12,7 +12,7 @@ class PresentationEntity(Base):
     __tablename__ = "presentation_entities"
 
     id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    presentation_id: Mapped[str] = mapped_column(ForeignKey("presentations.id", ondelete="CASCADE"), nullable=False)
+    presentation_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("presentations.id", ondelete="CASCADE"), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
     entity_name: Mapped[str] = mapped_column(String(500), nullable=False)
     normalized_name: Mapped[str | None] = mapped_column(String(500), nullable=True)

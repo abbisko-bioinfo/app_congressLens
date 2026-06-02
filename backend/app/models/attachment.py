@@ -1,7 +1,9 @@
+import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDMixin
@@ -13,7 +15,7 @@ if TYPE_CHECKING:
 class Attachment(Base, UUIDMixin):
     __tablename__ = "attachments"
 
-    presentation_id: Mapped[str] = mapped_column(ForeignKey("presentations.id", ondelete="CASCADE"), nullable=False)
+    presentation_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("presentations.id", ondelete="CASCADE"), nullable=False)
     original_filename: Mapped[str] = mapped_column(Text, nullable=False)
     original_object_key: Mapped[str] = mapped_column(Text, nullable=False)
     bucket_name: Mapped[str] = mapped_column(String(255), nullable=False)

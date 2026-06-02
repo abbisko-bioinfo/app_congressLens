@@ -1,6 +1,9 @@
 from typing import TYPE_CHECKING
 
+import uuid
+
 from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDMixin, TimestampMixin
@@ -12,7 +15,7 @@ if TYPE_CHECKING:
 class PresentationAuthor(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "presentation_authors"
 
-    presentation_id: Mapped[str] = mapped_column(ForeignKey("presentations.id", ondelete="CASCADE"), nullable=False)
+    presentation_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("presentations.id", ondelete="CASCADE"), nullable=False)
     source_author_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     display_name: Mapped[str] = mapped_column(String(500), nullable=False)
     normalized_name: Mapped[str | None] = mapped_column(String(500), nullable=True)
