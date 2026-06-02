@@ -1,10 +1,11 @@
+import uuid
 import pytest
 from httpx import AsyncClient
 
 
 @pytest.fixture
 async def conference_id(client: AsyncClient):
-    res = await client.post("/api/conferences", json={"acronym": "ASCO", "name": "ASCO 2026", "year": 2026})
+    res = await client.post("/api/conferences", json={"acronym": f"SES-{uuid.uuid4().hex[:6]}", "name": "Test Conf", "year": 2026})
     return res.json()["id"]
 
 
