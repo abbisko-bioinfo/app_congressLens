@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 import uuid
 
-from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy import ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,6 +15,11 @@ if TYPE_CHECKING:
 
 class Annotation(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "annotations"
+    __table_args__ = (
+        Index("ix_annotations_presentation_id", "presentation_id"),
+        Index("ix_annotations_attachment_id", "attachment_id"),
+        Index("ix_annotations_created_at", "created_at"),
+    )
 
     presentation_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("presentations.id", ondelete="CASCADE"), nullable=False)
     attachment_id: Mapped[uuid.UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("attachments.id", ondelete="SET NULL"), nullable=True)

@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 import uuid
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,6 +14,14 @@ if TYPE_CHECKING:
 
 class PresentationAuthor(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "presentation_authors"
+    __table_args__ = (
+        Index("ix_presentation_authors_presentation_id", "presentation_id"),
+        Index("ix_presentation_authors_normalized_name", "normalized_name"),
+        Index("ix_presentation_authors_organization", "organization"),
+        Index("ix_presentation_authors_author_order", "author_order"),
+        Index("ix_presentation_authors_is_first_author", "is_first_author"),
+        Index("ix_presentation_authors_is_presenter", "is_presenter"),
+    )
 
     presentation_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("presentations.id", ondelete="CASCADE"), nullable=False)
     source_author_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
