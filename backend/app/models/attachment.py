@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,6 +18,10 @@ class Attachment(Base, UUIDMixin):
         Index("ix_attachments_presentation_id", "presentation_id"),
         Index("ix_attachments_preview_status", "preview_status"),
         Index("ix_attachments_content_type", "content_type"),
+        CheckConstraint(
+            "preview_status IN ('pending', 'processing', 'ready', 'failed', 'not_supported')",
+            name="ck_attachments_preview_status",
+        ),
     )
 
     presentation_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("presentations.id", ondelete="CASCADE"), nullable=False)

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, String, Text
+from sqlalchemy import CheckConstraint, DateTime, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -10,6 +10,16 @@ from app.models.base import Base
 
 class AISummary(Base):
     __tablename__ = "ai_summaries"
+    __table_args__ = (
+        CheckConstraint(
+            "scope_type IN ('presentation', 'session', 'conference')",
+            name="ck_ai_summaries_scope_type",
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'processing', 'ready', 'failed')",
+            name="ck_ai_summaries_status",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     scope_type: Mapped[str] = mapped_column(String(50), nullable=False)

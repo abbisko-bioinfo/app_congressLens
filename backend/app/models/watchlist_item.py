@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, String, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, DateTime, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -10,7 +10,13 @@ from app.models.base import Base
 
 class WatchlistItem(Base):
     __tablename__ = "watchlist_items"
-    __table_args__ = (UniqueConstraint("user_id", "target_type", "target_id", name="uq_watchlist_user_target"),)
+    __table_args__ = (
+        UniqueConstraint("user_id", "target_type", "target_id", name="uq_watchlist_user_target"),
+        CheckConstraint(
+            "target_type IN ('conference', 'session', 'presentation')",
+            name="ck_watchlist_target_type",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[str | None] = mapped_column(String(255), nullable=True)

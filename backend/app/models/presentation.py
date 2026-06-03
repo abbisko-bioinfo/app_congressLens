@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -30,6 +30,10 @@ class Presentation(Base, UUIDMixin, TimestampMixin):
         Index("ix_presentations_clinical_trial_registry_number", "clinical_trial_registry_number"),
         Index("ix_presentations_start_time", "start_time"),
         Index("ix_presentations_summary_status", "summary_status"),
+        CheckConstraint(
+            "summary_status IN ('none', 'pending', 'processing', 'ready', 'failed')",
+            name="ck_presentations_summary_status",
+        ),
     )
 
     conference_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("conferences.id", ondelete="CASCADE"), nullable=False)
