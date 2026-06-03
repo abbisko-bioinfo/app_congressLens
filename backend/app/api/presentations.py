@@ -6,7 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.presentation import Presentation
-from app.schemas.presentation import PresentationCreate, PresentationList, PresentationRead, PresentationUpdate
+from app.models.presentation_author import PresentationAuthor
+from app.schemas.presentation import PresentationCreate, PresentationList, PresentationRead, PresentationUpdate, AuthorRead
 
 router = APIRouter(prefix="/presentations", tags=["presentations"])
 
@@ -73,3 +74,16 @@ async def update_presentation(id: str, data: PresentationUpdate, db: AsyncSessio
     await db.commit()
     await db.refresh(obj)
     return obj
+
+
+@router.get("/{id}/authors", response_model=list[AuthorRead])
+async def get_presentation_authors(id: str, db: AsyncSession = Depends(get_db)):
+    obj = await db.get(Presentation, uuid.UUID(id))
+    if not obj:
+        raise HTTPException(404, "Presentation not found")
+    result = await db.scalars(
+        select(PresentationAuthor)
+        .where(PresentationAuthor.presentation_id == uuid.UUID(id))
+        .order_by(PresentationAuthor.author_order)
+    )
+    return result.all()
