@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.models.presentation import Presentation
 from app.models.presentation_author import PresentationAuthor
+from app.models.watchlist_item import WatchlistItem
 from app.schemas.presentation import PresentationCreate, PresentationList, PresentationRead, PresentationUpdate, AuthorRead
 
 router = APIRouter(prefix="/presentations", tags=["presentations"])
@@ -57,11 +58,23 @@ async def create_presentation(data: PresentationCreate, db: AsyncSession = Depen
 
 
 @router.get("/{id}", response_model=PresentationRead)
-async def get_presentation(id: str, db: AsyncSession = Depends(get_db)):
+async def get_presentation(id: str, user_id: str | None = None, db: AsyncSession = Depends(get_db)):
     obj = await db.get(Presentation, uuid.UUID(id))
     if not obj:
         raise HTTPException(404, "Presentation not found")
-    return obj
+    is_watched = False
+    if user_id:
+        watched = await db.scalar(
+            select(WatchlistItem).where(
+                WatchlistItem.user_id == user_id,
+                WatchlistItem.target_type == "presentation",
+                WatchlistItem.target_id == obj.id,
+            )
+        )
+        is_watched = watched is not None
+    response = PresentationRead.model_validate(obj)
+    response.is_watched = is_watched
+    return response
 
 
 @router.patch("/{id}", response_model=PresentationRead)

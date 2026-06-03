@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.interaction import CommentRead, AnnotationRead
+
 
 class PresentationBase(BaseModel):
     conference_id: uuid.UUID
@@ -104,6 +106,15 @@ class AttachmentRead(BaseModel):
     uploaded_at: datetime
 
 
+class TopicRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    normalized_name: str
+    type: str
+
+
 class PresentationRead(PresentationBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -112,6 +123,10 @@ class PresentationRead(PresentationBase):
     updated_at: datetime
     authors: list[AuthorRead] = []
     attachments: list[AttachmentRead] = []
+    topics: list[TopicRead] = []
+    comments: list[CommentRead] = []
+    annotations: list[AnnotationRead] = []
+    is_watched: bool = False
 
 
 class PresentationList(BaseModel):

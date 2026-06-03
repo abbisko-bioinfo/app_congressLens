@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from app.models.attachment import Attachment
     from app.models.comment import Comment
     from app.models.annotation import Annotation
+    from app.models.topic import Topic
 
 
 class Presentation(Base, UUIDMixin, TimestampMixin):
@@ -79,3 +80,8 @@ class Presentation(Base, UUIDMixin, TimestampMixin):
     attachments: Mapped[list["Attachment"]] = relationship(back_populates="presentation", lazy="selectin")
     comments: Mapped[list["Comment"]] = relationship(back_populates="presentation", lazy="selectin")
     annotations: Mapped[list["Annotation"]] = relationship(back_populates="presentation", lazy="selectin")
+    topics: Mapped[list["Topic"]] = relationship(
+        secondary="presentation_topics",
+        back_populates="presentations",
+        lazy="selectin",
+    )
