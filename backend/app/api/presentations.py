@@ -18,7 +18,12 @@ async def list_presentations(
     conference_id: str | None = None,
     session_id: str | None = None,
     query: str | None = None,
+    author: str | None = None,
+    organization: str | None = None,
+    topic: str | None = None,
     presentation_type: str | None = None,
+    watched: bool | None = None,
+    user_id: str | None = None,
     has_attachment: bool | None = None,
     summary_status: str | None = None,
     skip: int = Query(0, ge=0),
@@ -39,8 +44,31 @@ async def list_presentations(
                 Presentation.first_author_name.ilike(f"%{query}%"),
             )
         )
+    if author:
+        author_subq = select(PresentationAuthor.presentation_id).where(
+            PresentationAuthor.display_name.ilike(f"%{author}%")
+        )
+        stmt = stmt.where(Presentation.id.in_(author_subq))
+    if organization:
+        org_subq = select(PresentationAuthor.presentation_id).where(
+            PresentationAuthor.organization.ilike(f"%{organization}%")
+        )
+        stmt = stmt.where(Presentation.id.in_(org_subq))
+    if topic:
+        from app.models.topic import Topic
+        from app.models.presentation_topic import PresentationTopic
+        topic_subq = select(PresentationTopic.presentation_id).join(
+            Topic, PresentationTopic.topic_id == Topic.id
+        ).where(Topic.name.ilike(f"%{topic}%"))
+        stmt = stmt.where(Presentation.id.in_(topic_subq))
     if presentation_type:
         stmt = stmt.where(Presentation.presentation_type == presentation_type)
+    if watched and user_id:
+        watch_subq = select(WatchlistItem.target_id).where(
+            WatchlistItem.user_id == user_id,
+            WatchlistItem.target_type == "presentation",
+        )
+        stmt = stmt.where(Presentation.id.in_(watch_subq))
     if summary_status:
         stmt = stmt.where(Presentation.summary_status == summary_status)
     total = await db.scalar(select(func.count()).select_from(stmt.subquery()))
