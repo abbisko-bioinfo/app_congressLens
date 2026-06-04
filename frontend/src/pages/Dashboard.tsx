@@ -6,7 +6,7 @@ export default function Dashboard() {
   const { data: recentPres } = useQuery({ queryKey: ["presentations", "recent"], queryFn: () => api.presentations.list({ skip: "0", limit: "10" }) });
   const { data: conferences } = useQuery({ queryKey: ["conferences"], queryFn: () => api.conferences.list(0, 5) });
   const { data: watchlist } = useQuery({ queryKey: ["watchlist"], queryFn: () => api.watchlist.list() });
-  const { data: upcomingSessions } = useQuery({ queryKey: ["sessions", "upcoming"], queryFn: () => api.sessions.list() });
+
 
   const watchedPresentations = watchlist?.filter((w) => w.target_type === "presentation") || [];
   const watchedSessions = watchlist?.filter((w) => w.target_type === "session") || [];

@@ -6,8 +6,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-congresslens}
       POSTGRES_USER: ${POSTGRES_USER:-congresslens}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-congresslens-password}
-    ports:
-      - "5435:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,9 +21,6 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-congresslens}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-congresslens-password}
-    ports:
-      - "9010:9000"
-      - "9011:9001"
     volumes:
       - minio_data:/data
     healthcheck:
@@ -37,8 +32,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: congresslens-redis
-    ports:
-      - "6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -70,7 +63,7 @@ services:
       REDIS_URL: ${REDIS_URL}
       BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
     ports:
-      - "8001:8000"
+      - "8050:8000"
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -100,7 +93,7 @@ services:
       dockerfile: Dockerfile
     container_name: congresslens-frontend
     ports:
-      - "5174:80"
+      - "8051:80"
     depends_on:
       - backend
 

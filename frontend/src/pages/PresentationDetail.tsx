@@ -91,11 +91,11 @@ export default function PresentationDetail() {
         </section>
       )}
 
-      {attachments?.length > 0 && (
+      {(attachments?.length ?? 0) > 0 && (
         <section>
           <h2 className="text-lg font-semibold text-gray-700 mb-2">Attachments</h2>
           <div className="space-y-2">
-            {attachments.map((att) => (
+            {attachments!.map((att) => (
               <div key={att.id} className="flex items-center gap-3 text-sm">
                 <span className="text-gray-900">{att.original_filename}</span>
                 <span className="text-gray-500">{att.content_type}</span>

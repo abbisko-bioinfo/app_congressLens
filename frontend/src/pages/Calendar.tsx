@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { api, CalendarEvent } from "../api/client";
+import { api, type CalendarEvent } from "../api/client";
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   conference: { bg: "bg-purple-100", text: "text-purple-700", border: "border-purple-300" },

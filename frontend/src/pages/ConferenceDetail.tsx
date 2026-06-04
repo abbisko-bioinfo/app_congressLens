@@ -12,7 +12,6 @@ export default function ConferenceDetail() {
   const { data: conf } = useQuery({ queryKey: ["conference", id], queryFn: () => api.conferences.get(id!) });
   const { data: sessions } = useQuery({ queryKey: ["sessions", id], queryFn: () => api.sessions.list(id!), enabled: !!id });
   const { data: presentations } = useQuery({ queryKey: ["presentations", id], queryFn: () => api.presentations.list({ conference_id: id!, skip: "0", limit: "50" }), enabled: !!id });
-  const { data: watchlist } = useQuery({ queryKey: ["watchlist"], queryFn: () => api.watchlist.list() });
   const { data: calendarEvents } = useQuery({ queryKey: ["calendar"], queryFn: () => api.calendar.events() });
 
   if (!conf) return <div className="p-6 text-gray-500">Loading...</div>;
@@ -108,7 +107,7 @@ export default function ConferenceDetail() {
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Conference Dates</h3>
             {conf.start_date && <p className="text-sm text-gray-600">{conf.start_date} - {conf.end_date}</p>}
           </div>
-          {calendarEvents?.events?.filter((e) => e.target_type === "conference" && e.target_id === id).length > 0 && (
+          {(calendarEvents?.events?.filter((e) => e.target_type === "conference" && e.target_id === id)?.length ?? 0) > 0 && (
             <div className="p-4 bg-blue-50 rounded-lg">
               <h3 className="text-sm font-semibold text-blue-700 mb-2">Watched Items for This Conference</h3>
               <p className="text-xs text-blue-600">This conference is on your watchlist.</p>
