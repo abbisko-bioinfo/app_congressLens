@@ -86,6 +86,7 @@ class ASCOImporter(BaseImporter):
                 batch += 1
                 if batch % 500 == 0:
                     await self.db.commit()
+                    self.db.expire_all()
             except Exception as e:
                 await self.db.rollback()
                 results["errors"].append(f"{json_file.name}: {str(e)}")
@@ -200,19 +201,36 @@ class ASCOImporter(BaseImporter):
         results["imported_authors"] += len(authors)
 
     async def _import_topics(self, presentation_id, content: dict):
-        raw_topics = []
-        if content.get("primaryTrack"):
-            raw_topics.append(content["primaryTrack"])
-        if content.get("subtrack"):
-            raw_topics.append(content["subtrack"])
-        for track in content.get("tracks") or []:
-            raw_topics.append(track)
+        raw_topic_names: list[str] = []
 
-        for topic_name in raw_topics:
-            name = topic_name.strip()
+        # primaryTrack and subtrack are dicts {trackId, track} or {name, id}
+        for field_name in ("primaryTrack", "subtrack"):
+            val = content.get(field_name)
+            if isinstance(val, dict):
+                track_name = val.get("track") or val.get("name") or ""
+                if track_name.strip():
+                    raw_topic_names.append(track_name.strip())
+            elif isinstance(val, str) and val.strip():
+                raw_topic_names.append(val.strip())
+
+        # tracks is a list of dicts or strings
+        for track in content.get("tracks") or []:
+            if isinstance(track, dict):
+                tn = track.get("track") or track.get("name") or ""
+                if tn.strip():
+                    raw_topic_names.append(tn.strip())
+            elif isinstance(track, str) and track.strip():
+                raw_topic_names.append(track.strip())
+
+        seen_norms: set[str] = set()
+        for name in raw_topic_names:
             if not name:
                 continue
             norm = normalize_name(name)
+            if norm in seen_norms:
+                continue
+            seen_norms.add(norm)
+
             existing = await self.db.scalar(
                 select(Topic).where(
                     Topic.normalized_name == norm, Topic.type == "track"
@@ -223,8 +241,11 @@ class ASCOImporter(BaseImporter):
                 self.db.add(topic)
                 await self.db.flush()
                 existing = topic
+
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
+
             await self.db.execute(
-                presentation_topics.insert().values(
-                    presentation_id=presentation_id, topic_id=existing.id
-                )
+                pg_insert(presentation_topics)
+                .values(presentation_id=presentation_id, topic_id=existing.id)
+                .on_conflict_do_nothing()
             )

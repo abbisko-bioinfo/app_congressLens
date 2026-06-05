@@ -63,6 +63,7 @@ class AACRImporter(BaseImporter):
                 batch += 1
                 if batch % 500 == 0:
                     await self.db.commit()
+                    self.db.expire_all()
             except Exception as e:
                 await self.db.rollback()
                 results["errors"].append(f"{json_file.name}: {str(e)}")
@@ -258,6 +259,8 @@ class AACRImporter(BaseImporter):
             name_and_aff = part.strip()
             name = name_and_aff.split("(")[0].strip() if "(" in name_and_aff else name_and_aff
             org = name_and_aff.split("(")[1].rstrip(")").strip() if "(" in name_and_aff else None
+            # Truncate to avoid overflow (author_block may have concatenated all authors)
+            name = name[:2000] if len(name) > 2000 else name
             obj = PresentationAuthor(
                 presentation_id=presentation_id,
                 display_name=name,
@@ -307,11 +310,15 @@ class AACRImporter(BaseImporter):
                     elif isinstance(val, list):
                         raw_topics.extend(val)
 
+        seen_norms: set[str] = set()
         for topic_name in raw_topics:
             name = topic_name.strip()
             if not name:
                 continue
             norm = normalize_name(name)
+            if norm in seen_norms:
+                continue
+            seen_norms.add(norm)
             existing = await self.db.scalar(
                 select(Topic).where(
                     Topic.normalized_name == norm, Topic.type == "keyword"
@@ -322,8 +329,10 @@ class AACRImporter(BaseImporter):
                 self.db.add(topic)
                 await self.db.flush()
                 existing = topic
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
+
             await self.db.execute(
-                presentation_topics.insert().values(
-                    presentation_id=presentation_id, topic_id=existing.id
-                )
+                pg_insert(presentation_topics)
+                .values(presentation_id=presentation_id, topic_id=existing.id)
+                .on_conflict_do_nothing()
             )

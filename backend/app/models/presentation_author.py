@@ -25,8 +25,8 @@ class PresentationAuthor(Base, UUIDMixin, TimestampMixin):
 
     presentation_id: Mapped[uuid.UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("presentations.id", ondelete="CASCADE"), nullable=False)
     source_author_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    display_name: Mapped[str] = mapped_column(String(500), nullable=False)
-    normalized_name: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    display_name: Mapped[str] = mapped_column(Text, nullable=False)
+    normalized_name: Mapped[str | None] = mapped_column(Text, nullable=True)
     role: Mapped[str | None] = mapped_column(String(100), nullable=True)
     author_order: Mapped[int | None] = mapped_column(Integer, nullable=True)
     organization: Mapped[str | None] = mapped_column(Text, nullable=True)
