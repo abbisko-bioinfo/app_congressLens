@@ -1,1 +1,187 @@
 @import "tailwindcss";
+
+@theme {
+  /* Primary Colors */
+  --color-primary: #3b5ba2;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #eef3f8;
+  --color-on-primary-container: #172033;
+
+  /* Secondary Colors */
+  --color-secondary: #a61e63;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #f7e7ef;
+  --color-on-secondary-container: #172033;
+
+  /* Tertiary Colors */
+  --color-tertiary: #1f71b2;
+  --color-tertiary-container: #e2f4fc;
+
+  /* Surface Colors */
+  --color-background: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-surface-variant: #eef3f8;
+  --color-on-surface: #172033;
+  --color-on-surface-variant: #5e6a78;
+  --color-outline: #9fa6a7;
+  --color-outline-variant: #dde4ec;
+
+  /* Surface Container Hierarchy */
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f6f8fb;
+  --color-surface-container: #eef3f8;
+  --color-surface-container-high: #e8eef6;
+  --color-surface-container-highest: #dde4ec;
+
+  /* Brand & Accent Colors */
+  --color-brand-blue: #3b5ba2;
+  --color-brand-magenta: #a61e63;
+  --color-accent-cyan: #2fafe1;
+  --color-accent-deep-blue: #1f71b2;
+  --color-neutral-steel: #9fa6a7;
+
+  /* Accent Extended */
+  --color-accent-rose: #b8195d;
+
+  /* State Colors */
+  --color-success: #1f9d67;
+  --color-warning: #d98b1e;
+  --color-danger: #c9354d;
+  --color-info: #2fafe1;
+
+  /* Neutral / Muted Colors */
+  --color-bg-page: #f6f8fb;
+  --color-bg-surface: #ffffff;
+  --color-bg-muted: #eef3f8;
+  --color-text-primary: #172033;
+  --color-text-secondary: #5e6a78;
+  --color-text-muted: #8a94a3;
+  --color-border-subtle: #dde4ec;
+  --color-border-strong: #b9c3d0;
+
+  /* Border Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-pill: 999px;
+  --radius-default: 0.375rem;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.5rem;
+  --radius-full: 999px;
+
+  /* Spacing */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 24px;
+  --spacing-6: 32px;
+  --spacing-7: 48px;
+  --spacing-8: 64px;
+  --spacing-9: 96px;
+
+  /* Shadows */
+  --shadow-soft: 0 10px 30px rgba(23, 32, 51, 0.08);
+  --shadow-popover: 0 16px 40px rgba(23, 32, 51, 0.14);
+
+  /* Typography */
+  --font-family-headline: Inter, "Noto Sans SC", "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+  --font-family-display: Inter, "Noto Sans SC", "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+  --font-family-body: Inter, "Noto Sans SC", "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+  --font-family-label: Inter, "Noto Sans SC", "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Font Sizes */
+  --font-size-display: 48px;
+  --font-size-h1: 40px;
+  --font-size-h2: 30px;
+  --font-size-h3: 22px;
+  --font-size-body: 16px;
+  --font-size-small: 14px;
+  --font-size-caption: 12px;
+  --font-size-micro: 10px;
+
+  /* Line Heights */
+  --line-height-display: 56px;
+  --line-height-h1: 48px;
+  --line-height-h2: 38px;
+  --line-height-h3: 30px;
+  --line-height-body: 26px;
+  --line-height-small: 22px;
+  --line-height-caption: 18px;
+
+  /* Letter Spacing — enforced 0 per design spec */
+  --letter-spacing-default: 0em;
+}
+
+/* Global Styles */
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-family-body);
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  letter-spacing: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: inherit;
+  color: var(--color-primary);
+  letter-spacing: 0;
+}
+
+/* Material Symbols configuration */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Material Symbols filled state (used for star icons) */
+.material-symbols-filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: var(--color-background); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--color-outline-variant); border-radius: 999px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
+
+/* Calendar Grid */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 80px repeat(5, minmax(180px, 1fr));
+  grid-auto-rows: minmax(86px, auto);
+}
+
+.calendar-cell {
+  border-bottom: 1px solid var(--color-outline-variant);
+  border-right: 1px solid var(--color-outline-variant);
+}
+
+/* Table Sticky Header */
+.table-sticky th { position: sticky; top: 0; z-index: 10; }
+
+/* Override letter-spacing from Tailwind utilities */
+.tracking-tight, .tracking-wider, .tracking-widest, [class*="tracking-["] {
+  letter-spacing: 0 !important;
+}
+
+/* Minimum width for interactive elements */
+a, button, input, select, textarea { min-width: 0; }
+
+/* Focus ring per design spec */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(47, 175, 225, 0.24);
+}
+
+/* Responsive Calendar Grid */
+@media (max-width: 1023px) {
+  .calendar-grid { grid-template-columns: 72px repeat(5, minmax(164px, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .calendar-grid { grid-template-columns: 64px repeat(5, minmax(152px, 1fr)); grid-auto-rows: minmax(92px, auto); }
+  .table-sticky th { top: 0; }
+}
