@@ -90,7 +90,7 @@ class ASCOImporter(BaseImporter):
                 continue
             try:
                 data = json.loads(json_file.read_text())
-                content = data.get("getContentById", {}).get("result", data)
+                content = data.get("data", {}).get("getContentById", {}).get("result", data)
                 await self._import_record(conference_uuid, content, results)
                 batch += 1
                 processed += 1
