@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { useParams, useLocation, Link } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { api, Conference, Session, Presentation } from "../api/client";
+import { api } from "../api/client";
+import type { Conference, Session, Presentation } from "../api/client";
 import PageShell from "../components/PageShell";
 import PresentationTable from "../components/PresentationTable";
 

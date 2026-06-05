@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { api, Presentation, WatchlistItem } from "../api/client";
+import { api } from "../api/client";
+import type { Presentation } from "../api/client";
 import PageShell from "../components/PageShell";
 import PresentationTable from "../components/PresentationTable";
 import { useAuth } from "../hooks/useAuth";

@@ -1,4 +1,4 @@
-import { Conference } from "../api/client";
+import type { Conference } from "../api/client";
 
 interface ConferenceBadgeProps {
   conf: Conference;

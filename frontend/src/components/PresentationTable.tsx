@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Presentation } from "../api/client";
+import type { Presentation } from "../api/client";
 
 function fmtDate(value: string): string {
   return new Date(value + "T00:00:00").toLocaleDateString("en-US", {
