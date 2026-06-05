@@ -1,70 +1,43 @@
-import { useState } from "react";
+import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
-import { api } from "../api/client";
+import { api, Conference, Presentation } from "../api/client";
+import PageShell from "../components/PageShell";
+import PresentationTable from "../components/PresentationTable";
+
+function getCongressId(conf: Conference): string {
+  return conf.acronym.toLowerCase().replace(/\s+/g, "") + "-" + conf.year;
+}
 
 export default function PresentationList() {
-  const [search, setSearch] = useState("");
-  const [confFilter, setConfFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
+  const { congress } = useParams<{ congress: string }>();
 
-  const { data: conferences } = useQuery({ queryKey: ["conferences"], queryFn: () => api.conferences.list(0, 200) });
-  const params: Record<string, string> = {};
-  if (search) params.query = search;
-  if (confFilter) params.conference_id = confFilter;
-  if (typeFilter) params.presentation_type = typeFilter;
+  const { data: confData } = useQuery({
+    queryKey: ["conferences"],
+    queryFn: () => api.conferences.list(),
+  });
 
-  const { data } = useQuery({ queryKey: ["presentations", params], queryFn: () => api.presentations.list(params) });
+  const conferences: Conference[] = confData?.items ?? [];
+  const conf = conferences.find((c) => getCongressId(c) === congress);
+
+  const { data } = useQuery({
+    queryKey: ["presentations", conf?.id],
+    queryFn: () =>
+      api.presentations.list({
+        conference_id: conf?.id ?? "",
+        limit: "200",
+      }),
+    enabled: !!conf,
+  });
+
+  const rows: Presentation[] = data?.items ?? [];
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-bold text-gray-900">Presentations</h1>
-
-      <div className="flex gap-4">
-        <input
-          type="text"
-          placeholder="Search..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <select value={confFilter} onChange={(e) => setConfFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md text-sm">
-          <option value="">All conferences</option>
-          {conferences?.items?.map((c) => <option key={c.id} value={c.id}>{c.acronym} {c.year}</option>)}
-        </select>
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md text-sm">
-          <option value="">All types</option>
-          <option value="Oral">Oral</option>
-          <option value="Poster">Poster</option>
-          <option value="Plenary">Plenary</option>
-        </select>
-      </div>
-
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-3 py-2 text-left text-gray-600 font-medium">Title</th>
-            <th className="px-3 py-2 text-left text-gray-600 font-medium">Presenter</th>
-            <th className="px-3 py-2 text-left text-gray-600 font-medium">First Author</th>
-            <th className="px-3 py-2 text-left text-gray-600 font-medium">Type</th>
-            <th className="px-3 py-2 text-left text-gray-600 font-medium">Abstract#</th>
-            <th className="px-3 py-2 text-left text-gray-600 font-medium">Attachments</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {data?.items?.map((p) => (
-            <tr key={p.id} className="hover:bg-gray-50">
-              <td className="px-3 py-2"><Link to={`/presentations/${p.id}`} className="text-blue-600 hover:underline">{p.title}</Link></td>
-              <td className="px-3 py-2 text-gray-600">{p.presenter_name || "-"}</td>
-              <td className="px-3 py-2 text-gray-600">{p.first_author_name || "-"}</td>
-              <td className="px-3 py-2 text-gray-600">{p.presentation_type || "-"}</td>
-              <td className="px-3 py-2 text-gray-600">{p.abstract_number || "-"}</td>
-              <td className="px-3 py-2 text-gray-600">{[p.has_slides && "Slides", p.has_posters && "Poster", p.has_videos && "Video"].filter(Boolean).join(", ") || "-"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="text-sm text-gray-500">{data?.total ?? 0} presentations</div>
-    </div>
+    <PageShell
+      title="Presentations"
+      subtitle="All presentation records are displayed as a table, with drill-down detail pages for text, attachments and user comments."
+      congress={congress}
+    >
+      <PresentationTable rows={rows} congress={congress ?? ""} />
+    </PageShell>
   );
 }
