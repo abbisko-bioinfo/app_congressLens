@@ -4,15 +4,14 @@ from pathlib import Path
 
 import bleach
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.importers.base import BaseImporter
 from app.models.conference import Conference
 from app.models.presentation import Presentation
 from app.models.presentation_author import PresentationAuthor
+from app.models.presentation_topic import presentation_topics
 from app.models.session import Session
 from app.models.topic import Topic
-from app.models.presentation_topic import presentation_topics
-from app.importers.base import BaseImporter
 
 ALLOWED_TAGS = [
     "p", "br", "b", "strong", "i", "em", "u", "sup", "sub",
@@ -47,13 +46,32 @@ class ASCOImporter(BaseImporter):
         conference_uuid = conference_id
         conference = await self.db.get(Conference, conference_uuid)
         if not conference:
-            return {"errors": ["Conference not found"], "imported_presentations": 0, "imported_sessions": 0, "imported_authors": 0, "skipped": 0}
+            return {
+                "errors": ["Conference not found"],
+                "imported_presentations": 0,
+                "imported_sessions": 0,
+                "imported_authors": 0,
+                "skipped": 0,
+            }
 
         path = Path(folder_path)
         if not path.exists():
-            return {"errors": ["Folder not found"], "imported_presentations": 0, "imported_sessions": 0, "imported_authors": 0, "skipped": 0}
+            return {
+                "errors": ["Folder not found"],
+                "imported_presentations": 0,
+                "imported_sessions": 0,
+                "imported_authors": 0,
+                "skipped": 0,
+            }
 
-        results = {"source": "asco", "imported_presentations": 0, "imported_sessions": 0, "imported_authors": 0, "skipped": 0, "errors": []}
+        results = {
+            "source": "asco",
+            "imported_presentations": 0,
+            "imported_sessions": 0,
+            "imported_authors": 0,
+            "skipped": 0,
+            "errors": [],
+        }
 
         for json_file in sorted(path.glob("**/*.json")):
             try:
@@ -124,17 +142,34 @@ class ASCOImporter(BaseImporter):
             )
         )
         if existing:
+            # Update with richer metadata if available
+            session_title = content.get("sessionTitle")
+            if session_title:
+                existing.title = session_title
+            session_type = content.get("sessionType")
+            if session_type:
+                existing.session_type = session_type
+            primary_track = content.get("primaryTrack")
+            if isinstance(primary_track, dict) and primary_track.get("track"):
+                existing.track = primary_track["track"]
+            await self.db.flush()
             return existing.id
+
+        # Extract track from primaryTrack dict
+        track_name = None
+        primary_track = content.get("primaryTrack")
+        if isinstance(primary_track, dict) and primary_track.get("track"):
+            track_name = primary_track["track"]
 
         session = Session(
             conference_id=conference_uuid,
             source_session_id=str(source_session_id),
             title=content.get("sessionTitle", ""),
             session_type=content.get("sessionType"),
+            track=track_name,
         )
         self.db.add(session)
         await self.db.flush()
-        results_placeholder = None
         return session.id
 
     async def _import_authors(self, presentation_id, content: dict, results: dict):
@@ -169,12 +204,18 @@ class ASCOImporter(BaseImporter):
             if not name:
                 continue
             norm = normalize_name(name)
-            existing = await self.db.scalar(select(Topic).where(Topic.normalized_name == norm, Topic.type == "track"))
+            existing = await self.db.scalar(
+                select(Topic).where(
+                    Topic.normalized_name == norm, Topic.type == "track"
+                )
+            )
             if not existing:
                 topic = Topic(name=name, normalized_name=norm, type="track")
                 self.db.add(topic)
                 await self.db.flush()
                 existing = topic
             await self.db.execute(
-                presentation_topics.insert().values(presentation_id=presentation_id, topic_id=existing.id)
+                presentation_topics.insert().values(
+                    presentation_id=presentation_id, topic_id=existing.id
+                )
             )

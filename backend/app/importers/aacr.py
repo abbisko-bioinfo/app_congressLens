@@ -1,34 +1,62 @@
 import json
 from pathlib import Path
 
-import bleach
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.importers.asco import (
+    normalize_name,
+    sanitize_html,
+    strip_html,
+)
+from app.importers.base import BaseImporter
 from app.models.conference import Conference
 from app.models.presentation import Presentation
 from app.models.presentation_author import PresentationAuthor
+from app.models.presentation_topic import presentation_topics
 from app.models.session import Session
 from app.models.topic import Topic
-from app.models.presentation_topic import presentation_topics
-from app.importers.asco import ALLOWED_TAGS, ALLOWED_ATTRS, sanitize_html, strip_html, normalize_name
-from app.importers.base import BaseImporter
 
 
 class AACRImporter(BaseImporter):
     async def import_folder(self, conference_id: str, folder_path: str) -> dict:
+        """Import presentation JSON files from the folder."""
         conference_uuid = conference_id
         conference = await self.db.get(Conference, conference_uuid)
         if not conference:
-            return {"errors": ["Conference not found"], "imported_presentations": 0, "imported_sessions": 0, "imported_authors": 0, "skipped": 0}
+            return {
+                "errors": ["Conference not found"],
+                "imported_presentations": 0,
+                "imported_sessions": 0,
+                "imported_authors": 0,
+                "skipped": 0,
+            }
 
         path = Path(folder_path)
         if not path.exists():
-            return {"errors": ["Folder not found"], "imported_presentations": 0, "imported_sessions": 0, "imported_authors": 0, "skipped": 0}
+            return {
+                "errors": ["Folder not found"],
+                "imported_presentations": 0,
+                "imported_sessions": 0,
+                "imported_authors": 0,
+                "skipped": 0,
+            }
 
-        results = {"source": "aacr", "imported_presentations": 0, "imported_sessions": 0, "imported_authors": 0, "skipped": 0, "errors": []}
+        results = {
+            "source": "aacr",
+            "imported_presentations": 0,
+            "imported_sessions": 0,
+            "imported_authors": 0,
+            "skipped": 0,
+            "errors": [],
+        }
 
         for json_file in sorted(path.glob("**/*.json")):
+            # Skip session summary files — those are handled by import_sessions_folder
+            if "_summary" in json_file.name:
+                continue
+            # Skip files in the session/ subdirectory
+            if json_file.parent.name == "session":
+                continue
             try:
                 data = json.loads(json_file.read_text())
                 await self._import_record(conference_uuid, data, results)
@@ -39,8 +67,120 @@ class AACRImporter(BaseImporter):
         await self.db.commit()
         return results
 
+    async def import_sessions_folder(self, conference_id: str, folder_path: str) -> dict:
+        """Import session JSON files from the session/ subdirectory with full metadata."""
+        conference_uuid = conference_id
+        conference = await self.db.get(Conference, conference_uuid)
+        if not conference:
+            return {"errors": ["Conference not found"], "imported_sessions": 0, "skipped": 0}
+
+        path = Path(folder_path)
+        if not path.exists():
+            return {"errors": ["Folder not found"], "imported_sessions": 0, "skipped": 0}
+
+        results = {"source": "aacr_sessions", "imported_sessions": 0, "skipped": 0, "errors": []}
+
+        # Look for session JSON files — they can be in a session/ subdirectory or mixed in
+        session_files = []
+        session_subdir = path / "session"
+        if session_subdir.exists():
+            session_files = sorted(session_subdir.glob("**/*.json"))
+        else:
+            # Fall back: look for _summary files in the root
+            session_files = sorted(path.glob("**/*_summary.json"))
+
+        for json_file in session_files:
+            try:
+                data = json.loads(json_file.read_text())
+                await self._import_session_record(conference_uuid, data, results)
+            except Exception as e:
+                results["errors"].append(f"{json_file.name}: {str(e)}")
+                results["skipped"] += 1
+
+        await self.db.commit()
+        return results
+
+    async def _import_session_record(self, conference_uuid, data: dict, results: dict):
+        """Import a single session JSON with full metadata from AdditionalFields."""
+        source_id = data.get("Id")
+        if not source_id:
+            results["skipped"] += 1
+            return
+
+        # Flatten AdditionalFields per notebook pattern
+        additional_fields = data.get("AdditionalFields") or []
+        flat_fields: dict[str, str] = {}
+        for field in additional_fields:
+            if isinstance(field, dict) and "Key" in field and "Value" in field:
+                flat_fields[f"AdditionalFields.{field['Key']}"] = field["Value"]
+
+        # Extract session metadata from flattened fields
+        session_name = flat_fields.get("AdditionalFields.SessionName", "")
+        track_all = flat_fields.get("AdditionalFields.AACRTrackAll", "")
+
+        # Build datetime from Date + StartTime/EndTime
+        date_val = data.get("Date", "")
+        start_time_str = data.get("StartTime", "")
+        end_time_str = data.get("EndTime", "")
+
+        start_time = None
+        end_time = None
+        if date_val and start_time_str:
+            try:
+                start_time = f"{date_val}T{start_time_str}:00"
+            except Exception:
+                pass
+        if date_val and end_time_str:
+            try:
+                end_time = f"{date_val}T{end_time_str}:00"
+            except Exception:
+                pass
+
+        # Check if session already exists (by source_session_id)
+        existing = await self.db.scalar(
+            select(Session).where(
+                Session.conference_id == conference_uuid,
+                Session.source_session_id == str(source_id),
+            )
+        )
+
+        if existing:
+            # Update existing session with richer metadata
+            existing.title = data.get("Title", existing.title)
+            existing.session_type = session_name or data.get("Number", existing.session_type)
+            existing.track = track_all or existing.track
+            existing.room = data.get("Location", existing.room)
+            existing.start_time = start_time or existing.start_time
+            existing.end_time = end_time or existing.end_time
+            existing.description = strip_html(data.get("Description"))
+            await self.db.flush()
+            return
+
+        # Create new session with full metadata
+        session = Session(
+            conference_id=conference_uuid,
+            source_session_id=str(source_id),
+            title=data.get("Title", ""),
+            session_type=session_name or data.get("Number", ""),
+            track=track_all,
+            room=data.get("Location"),
+            start_time=start_time,
+            end_time=end_time,
+            description=strip_html(data.get("Description")),
+        )
+        self.db.add(session)
+        await self.db.flush()
+        results["imported_sessions"] += 1
+
     async def _import_record(self, conference_uuid, data: dict, results: dict):
         session_id = await self._ensure_session(conference_uuid, data)
+
+        # Flatten AdditionalFields for presentation-level data
+        additional_fields = data.get("AdditionalFields") or []
+        flat_fields: dict[str, str] = {}
+        for field in additional_fields:
+            if isinstance(field, dict) and "Key" in field and "Value" in field:
+                flat_fields[f"AdditionalFields.{field['Key']}"] = field["Value"]
 
         pres_data = {
             "conference_id": conference_uuid,
@@ -62,13 +202,18 @@ class AACRImporter(BaseImporter):
             "disclosure_block_html": sanitize_html(data.get("DisclosureBlock")),
         }
 
+        # Extract institution_block from AdditionalFields
+        institution = flat_fields.get("AdditionalFields.Institution")
+        if institution:
+            pres_data["institution_block"] = institution
+
         pres = Presentation(**pres_data)
         self.db.add(pres)
         await self.db.flush()
         results["imported_presentations"] += 1
 
         await self._parse_authors(pres.id, data, results)
-        await self._import_topics(pres.id, data)
+        await self._import_topics(pres.id, data, flat_fields)
 
     async def _ensure_session(self, conference_uuid, data: dict):
         source_id = data.get("SessionId")
@@ -92,7 +237,6 @@ class AACRImporter(BaseImporter):
         )
         self.db.add(session)
         await self.db.flush()
-        results_placeholder = None
         return session.id
 
     async def _parse_authors(self, presentation_id, data: dict, results: dict):
@@ -118,26 +262,59 @@ class AACRImporter(BaseImporter):
         await self.db.flush()
         results["imported_authors"] += len(parts)
 
-    async def _import_topics(self, presentation_id, data: dict):
-        raw_topics = []
-        fields = data.get("AdditionalFields") or {}
-        for key in ["Keywords", "Topic", "Category", "Track"]:
-            vals = fields.get(key) or []
-            if isinstance(vals, str):
-                vals = [vals]
-            raw_topics.extend(vals)
+    async def _import_topics(self, presentation_id, data: dict, flat_fields: dict):
+        raw_topics: list[str] = []
+
+        # Extract topics from flattened AdditionalFields
+        keywords = flat_fields.get("AdditionalFields.Keywords")
+        if keywords:
+            if isinstance(keywords, str):
+                raw_topics.extend([k.strip() for k in keywords.split(",") if k.strip()])
+            elif isinstance(keywords, list):
+                raw_topics.extend(keywords)
+
+        topic_cat = flat_fields.get("AdditionalFields.Topic")
+        if topic_cat:
+            if isinstance(topic_cat, str):
+                raw_topics.extend([t.strip() for t in topic_cat.split(",") if t.strip()])
+            elif isinstance(topic_cat, list):
+                raw_topics.extend(topic_cat)
+
+        eposter = flat_fields.get("AdditionalFields.ePosterClassification")
+        if eposter:
+            if isinstance(eposter, str):
+                raw_topics.extend([t.strip() for t in eposter.split(",") if t.strip()])
+            elif isinstance(eposter, list):
+                raw_topics.extend(eposter)
+
+        # Also check raw AdditionalFields dict for Topics
+        for field in data.get("AdditionalFields") or []:
+            if isinstance(field, dict):
+                key = field.get("Key", "")
+                if key in ("Keywords", "Topic", "Category", "Track"):
+                    val = field.get("Value", "")
+                    if isinstance(val, str):
+                        raw_topics.extend([v.strip() for v in val.split(",") if v.strip()])
+                    elif isinstance(val, list):
+                        raw_topics.extend(val)
 
         for topic_name in raw_topics:
             name = topic_name.strip()
             if not name:
                 continue
             norm = normalize_name(name)
-            existing = await self.db.scalar(select(Topic).where(Topic.normalized_name == norm, Topic.type == "keyword"))
+            existing = await self.db.scalar(
+                select(Topic).where(
+                    Topic.normalized_name == norm, Topic.type == "keyword"
+                )
+            )
             if not existing:
                 topic = Topic(name=name, normalized_name=norm, type="keyword")
                 self.db.add(topic)
                 await self.db.flush()
                 existing = topic
             await self.db.execute(
-                presentation_topics.insert().values(presentation_id=presentation_id, topic_id=existing.id)
+                presentation_topics.insert().values(
+                    presentation_id=presentation_id, topic_id=existing.id
+                )
             )
