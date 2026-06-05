@@ -7,7 +7,7 @@ export interface AuthUser {
   is_admin: boolean;
 }
 
-interface AuthContextValue {
+export interface AuthContextValue {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -15,18 +15,20 @@ interface AuthContextValue {
   logout: () => Promise<void>;
 }
 
-const defaultContext: AuthContextValue = {
-  user: null,
-  isAuthenticated: false,
-  isAdmin: false,
-  login: async () => {},
-  logout: async () => {},
-};
-
-const AuthContext = createContext<AuthContextValue>(defaultContext);
+const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function useAuth(): AuthContextValue {
-  return useContext(AuthContext);
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    return {
+      user: null,
+      isAuthenticated: false,
+      isAdmin: false,
+      login: async () => {},
+      logout: async () => {},
+    };
+  }
+  return ctx;
 }
 
 export { AuthContext };
