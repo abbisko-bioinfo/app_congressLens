@@ -51,10 +51,7 @@ class AACRImporter(BaseImporter):
         }
 
         for json_file in sorted(path.glob("**/*.json")):
-            # Skip session summary files — those are handled by import_sessions_folder
-            if "_summary" in json_file.name:
-                continue
-            # Skip files in the session/ subdirectory
+            # Skip files in the session/ subdirectory — handled by import_sessions_folder
             if json_file.parent.name == "session":
                 continue
             try:
