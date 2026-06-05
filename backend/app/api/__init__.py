@@ -1,16 +1,16 @@
 from fastapi import APIRouter
 
-from app.api.health import router as health_router
-from app.api.conferences import router as conferences_router
-from app.api.sessions import router as sessions_router
-from app.api.presentations import router as presentations_router
-from app.api.interactions import router as interactions_router
-from app.api.watchlist import router as watchlist_router
-from app.api.importer import router as importer_router
-from app.api.presentation_attachments import router as presentation_attachments_router
+from app.api.ai import router as ai_router
 from app.api.attachments import router as attachments_router
 from app.api.calendar import router as calendar_router
-from app.api.ai import router as ai_router
+from app.api.conferences import router as conferences_router
+from app.api.health import router as health_router
+from app.api.importer import router as importer_router
+from app.api.interactions import router as interactions_router
+from app.api.presentation_attachments import router as presentation_attachments_router
+from app.api.presentations import router as presentations_router
+from app.api.sessions import router as sessions_router
+from app.api.watchlist import router as watchlist_router
 from app.auth.routes import router as auth_router
 
 api_router = APIRouter(prefix="/api")

@@ -48,10 +48,18 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET}
       MINIO_SECURE: ${MINIO_SECURE}
       BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
+      SECRET_KEY: ${SECRET_KEY:-change-me}
+      LDAP_ENABLED: ${LDAP_ENABLED:-false}
+      LDAP_SERVER: ${LDAP_SERVER:-}
+      LDAP_BIND_DN_TEMPLATE: ${LDAP_BIND_DN_TEMPLATE:-}
+      LDAP_SEARCH_BASE: ${LDAP_SEARCH_BASE:-}
+      LDAP_USER_FILTER: ${LDAP_USER_FILTER:-}
+      ADMIN_USERS: ${ADMIN_USERS:-}
     ports:
       - "8050:8000"
     volumes:
       - ./backend:/app
+      - ./attachmentFiles:/data/attachmentFiles:ro
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:

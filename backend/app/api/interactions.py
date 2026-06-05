@@ -6,12 +6,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_authenticated_user
 from app.core.database import get_db
-from app.models.comment import Comment
 from app.models.annotation import Annotation
+from app.models.comment import Comment
 from app.models.presentation import Presentation
 from app.schemas.interaction import (
-    AnnotationCreate, AnnotationRead, AnnotationUpdate,
-    CommentCreate, CommentRead, CommentUpdate,
+    AnnotationCreate,
+    AnnotationRead,
+    AnnotationUpdate,
+    CommentCreate,
+    CommentRead,
+    CommentUpdate,
 )
 
 router = APIRouter(tags=["interactions"])
@@ -29,7 +33,9 @@ async def list_comments(id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/presentations/{id}/comments", response_model=CommentRead, status_code=201)
-async def create_comment(id: str, data: CommentCreate, db: AsyncSession = Depends(get_db), _user=Depends(get_authenticated_user)):
+async def create_comment(id: str, data: CommentCreate, db: AsyncSession = Depends(get_db),
+    _user=Depends(get_authenticated_user),
+):
     pres = await db.get(Presentation, uuid.UUID(id))
     if not pres:
         raise HTTPException(404, "Presentation not found")
@@ -41,7 +47,9 @@ async def create_comment(id: str, data: CommentCreate, db: AsyncSession = Depend
 
 
 @router.patch("/comments/{id}", response_model=CommentRead)
-async def update_comment(id: str, data: CommentUpdate, db: AsyncSession = Depends(get_db), _user=Depends(get_authenticated_user)):
+async def update_comment(id: str, data: CommentUpdate, db: AsyncSession = Depends(get_db),
+    _user=Depends(get_authenticated_user),
+):
     obj = await db.get(Comment, uuid.UUID(id))
     if not obj:
         raise HTTPException(404, "Comment not found")
@@ -53,7 +61,9 @@ async def update_comment(id: str, data: CommentUpdate, db: AsyncSession = Depend
 
 
 @router.delete("/comments/{id}", status_code=204)
-async def delete_comment(id: str, db: AsyncSession = Depends(get_db), _user=Depends(get_authenticated_user)):
+async def delete_comment(id: str, db: AsyncSession = Depends(get_db),
+    _user=Depends(get_authenticated_user),
+):
     obj = await db.get(Comment, uuid.UUID(id))
     if not obj:
         raise HTTPException(404, "Comment not found")
@@ -73,7 +83,9 @@ async def list_annotations(id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/presentations/{id}/annotations", response_model=AnnotationRead, status_code=201)
-async def create_annotation(id: str, data: AnnotationCreate, db: AsyncSession = Depends(get_db), _user=Depends(get_authenticated_user)):
+async def create_annotation(id: str, data: AnnotationCreate, db: AsyncSession = Depends(get_db),
+    _user=Depends(get_authenticated_user),
+):
     pres = await db.get(Presentation, uuid.UUID(id))
     if not pres:
         raise HTTPException(404, "Presentation not found")
@@ -88,7 +100,9 @@ async def create_annotation(id: str, data: AnnotationCreate, db: AsyncSession = 
 
 
 @router.patch("/annotations/{id}", response_model=AnnotationRead)
-async def update_annotation(id: str, data: AnnotationUpdate, db: AsyncSession = Depends(get_db), _user=Depends(get_authenticated_user)):
+async def update_annotation(id: str, data: AnnotationUpdate, db: AsyncSession = Depends(get_db),
+    _user=Depends(get_authenticated_user),
+):
     obj = await db.get(Annotation, uuid.UUID(id))
     if not obj:
         raise HTTPException(404, "Annotation not found")
@@ -100,7 +114,9 @@ async def update_annotation(id: str, data: AnnotationUpdate, db: AsyncSession = 
 
 
 @router.delete("/annotations/{id}", status_code=204)
-async def delete_annotation(id: str, db: AsyncSession = Depends(get_db), _user=Depends(get_authenticated_user)):
+async def delete_annotation(id: str, db: AsyncSession = Depends(get_db),
+    _user=Depends(get_authenticated_user),
+):
     obj = await db.get(Annotation, uuid.UUID(id))
     if not obj:
         raise HTTPException(404, "Annotation not found")
