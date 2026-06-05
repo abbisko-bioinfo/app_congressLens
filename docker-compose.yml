@@ -29,17 +29,6 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    container_name: congresslens-redis
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: ./backend
@@ -50,8 +39,6 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     environment:
       DATABASE_URL: ${DATABASE_URL}
       MINIO_ENDPOINT: ${MINIO_ENDPOINT}
@@ -60,32 +47,12 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       MINIO_BUCKET: ${MINIO_BUCKET}
       MINIO_SECURE: ${MINIO_SECURE}
-      REDIS_URL: ${REDIS_URL}
       BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
     ports:
       - "8050:8000"
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-
-  worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: congresslens-worker
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-      MINIO_BUCKET: ${MINIO_BUCKET}
-      REDIS_URL: ${REDIS_URL}
-    command: python -m app.workers.runner
 
   frontend:
     build:
@@ -100,4 +67,3 @@ services:
 volumes:
   postgres_data:
   minio_data:
-  redis_data:

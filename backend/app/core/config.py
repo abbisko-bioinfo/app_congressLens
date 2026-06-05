@@ -9,7 +9,6 @@ class Settings(BaseSettings):
     minio_secret_key: str = "congresslens-password"
     minio_bucket: str = "congresslens-attachments"
     minio_secure: bool = False
-    redis_url: str = "redis://localhost:6379/0"
     backend_cors_origins: str = "http://localhost:5174"
 
     @property
