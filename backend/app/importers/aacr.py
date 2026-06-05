@@ -90,7 +90,7 @@ class AACRImporter(BaseImporter):
         return results
 
     async def import_sessions_folder(
-        self, conference_id: str, folder_path: str, max_files: int = 0
+        self, conference_id: str, folder_path: str, max_files: int = 0, offset: int = 0
     ) -> dict:
         """Import session JSON files. max_files=0 means unlimited."""
         conference_uuid = conference_id
@@ -114,8 +114,13 @@ class AACRImporter(BaseImporter):
             session_files = sorted(path.glob("**/*_summary.json"))
 
         processed = 0
+        skipped_offset = 0
         for json_file in session_files:
             if max_files and processed >= max_files:
+                break
+            if skipped_offset < offset:
+                skipped_offset += 1
+                continue
                 break
             try:
                 data = json.loads(json_file.read_text())
