@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 from sqlalchemy import select
@@ -50,7 +51,11 @@ class AACRImporter(BaseImporter):
             "errors": [],
         }
 
-        skip_dirs = {"session", "schedule", "focus", "output", "E-Poster-2025AACR_abstract_list", "E-Poster-2025AACR_abstract_list.supp", "On-site_poster", "Oral-2025AACR"}
+        skip_dirs = {
+            "session", "schedule", "focus", "output",
+            "E-Poster-2025AACR_abstract_list", "E-Poster-2025AACR_abstract_list.supp",
+            "On-site_poster", "Oral-2025AACR", "presentation.bak",
+        }
 
         batch = 0
         for json_file in sorted(path.glob("**/*.json")):
@@ -249,30 +254,82 @@ class AACRImporter(BaseImporter):
         await self.db.flush()
         return session.id
 
+    @staticmethod
+    def _parse_author_block(author_block_html: str) -> list[dict]:
+        """Parse AACR AuthorBlock HTML into list of {name, org} dicts.
+
+        AACR AuthorBlock format:
+          <b>Name</b><sup>1</sup>, <b>Name</b><sup>2</sup><br><br/><sup>1</sup>Org1,<sup>2</sup>Org2
+        or simpler:
+          <b>Name</b><sup></sup>, Name<sup></sup><br><br/>Org Name
+        """
+        if not author_block_html:
+            return []
+
+        sections = re.split(r"<br\s*/?\s*>", author_block_html, maxsplit=1)
+        author_section = sections[0]
+        org_section = sections[1] if len(sections) > 1 else ""
+
+        # Parse org map: <sup>N</sup>OrgName
+        org_map: dict[int, str] = {}
+        if org_section:
+            org_parts = re.split(r"(?:<sup>(\d+)</sup>)", org_section)
+            for j in range(1, len(org_parts), 2):
+                org_num = int(org_parts[j])
+                org_text = org_parts[j + 1] if j + 1 < len(org_parts) else ""
+                org_text = re.sub(r"^,\s*", "", org_text).strip(" ,")
+                if org_text:
+                    org_map[org_num] = org_text
+
+        # Split by comma to get individual author entries
+        entries = [e.strip() for e in author_section.split(",") if e.strip()]
+
+        parsed = []
+        for entry in entries:
+            name_match = re.search(r"<b>([^<]+)</b>", entry)
+            if name_match:
+                name = name_match.group(1).strip()
+            else:
+                name = re.sub(r"<sup>\d*</sup>", "", entry).strip()
+
+            sup_match = re.search(r"<sup>(\d+)</sup>", entry)
+            sup_num = int(sup_match.group(1)) if sup_match else None
+
+            if name:
+                org = org_map.get(sup_num) if sup_num is not None else None
+                parsed.append({"name": name, "org": org})
+
+        # Fallback: unnumbered authors get the full org text
+        if parsed and not any(p["org"] for p in parsed):
+            if org_section:
+                fallback = (strip_html(org_section) or "").strip(" ,")
+                if fallback:
+                    parsed[0]["org"] = fallback
+
+        return parsed
+
     async def _parse_authors(self, presentation_id, data: dict, results: dict):
         author_block = data.get("AuthorBlock", "")
         if not author_block:
             return
-        stripped = strip_html(author_block) or ""
-        parts = [p.strip() for p in stripped.split(";") if p.strip()]
-        for i, part in enumerate(parts):
-            name_and_aff = part.strip()
-            name = name_and_aff.split("(")[0].strip() if "(" in name_and_aff else name_and_aff
-            org = name_and_aff.split("(")[1].rstrip(")").strip() if "(" in name_and_aff else None
-            # Truncate to avoid overflow (author_block may have concatenated all authors)
-            name = name[:2000] if len(name) > 2000 else name
+        parsed = self._parse_author_block(author_block)
+        presenter_name = data.get("PresenterDisplayName", "")
+        presenter_first = presenter_name.split(",")[0].strip() if presenter_name else ""
+
+        for i, author in enumerate(parsed):
+            name = author["name"][:1000]
             obj = PresentationAuthor(
                 presentation_id=presentation_id,
                 display_name=name,
                 normalized_name=normalize_name(name),
                 author_order=i + 1,
-                organization=org,
+                organization=author.get("org"),
                 is_first_author=(i == 0),
-                is_presenter=(name == data.get("PresenterDisplayName")),
+                is_presenter=(name == presenter_first or presenter_name.startswith(name)),
             )
             self.db.add(obj)
         await self.db.flush()
-        results["imported_authors"] += len(parts)
+        results["imported_authors"] += len(parsed)
 
     async def _import_topics(self, presentation_id, data: dict, flat_fields: dict):
         raw_topics: list[str] = []

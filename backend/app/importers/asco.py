@@ -185,16 +185,17 @@ class ASCOImporter(BaseImporter):
     async def _import_authors(self, presentation_id, content: dict, results: dict):
         authors = content.get("authors") or []
         for i, author in enumerate(authors):
+            role = author.get("role", "")
             obj = PresentationAuthor(
                 presentation_id=presentation_id,
-                source_author_id=author.get("authorId"),
+                source_author_id=author.get("ascoId"),
                 display_name=author.get("displayName", ""),
                 normalized_name=normalize_name(author.get("displayName", "")),
-                role=author.get("role"),
-                author_order=i + 1,
-                organization=author.get("institution"),
-                is_first_author=bool(author.get("isFirstAuthor")),
-                is_presenter=bool(author.get("isPresenter")),
+                role=role,
+                author_order=author.get("order") or i + 1,
+                organization=author.get("publicationOrganization"),
+                is_first_author=(role == "First Author"),
+                is_presenter=(role == "Presenter"),
             )
             self.db.add(obj)
         await self.db.flush()
