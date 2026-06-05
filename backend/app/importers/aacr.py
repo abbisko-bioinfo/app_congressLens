@@ -50,14 +50,21 @@ class AACRImporter(BaseImporter):
             "errors": [],
         }
 
+        skip_dirs = {"session", "schedule", "focus", "output", "E-Poster-2025AACR_abstract_list", "E-Poster-2025AACR_abstract_list.supp", "On-site_poster", "Oral-2025AACR"}
+
+        batch = 0
         for json_file in sorted(path.glob("**/*.json")):
-            # Skip files in the session/ subdirectory — handled by import_sessions_folder
-            if json_file.parent.name == "session":
+            # Skip non-presentation subdirectories
+            if json_file.parent.name in skip_dirs:
                 continue
             try:
                 data = json.loads(json_file.read_text())
                 await self._import_record(conference_uuid, data, results)
+                batch += 1
+                if batch % 500 == 0:
+                    await self.db.commit()
             except Exception as e:
+                await self.db.rollback()
                 results["errors"].append(f"{json_file.name}: {str(e)}")
                 results["skipped"] += 1
 
@@ -91,6 +98,7 @@ class AACRImporter(BaseImporter):
                 data = json.loads(json_file.read_text())
                 await self._import_session_record(conference_uuid, data, results)
             except Exception as e:
+                await self.db.rollback()
                 results["errors"].append(f"{json_file.name}: {str(e)}")
                 results["skipped"] += 1
 
@@ -170,6 +178,10 @@ class AACRImporter(BaseImporter):
         results["imported_sessions"] += 1
 
     async def _import_record(self, conference_uuid, data: dict, results: dict):
+        # Skip non-presentation records (schedule files, etc.)
+        if not data.get("Id"):
+            results["skipped"] += 1
+            return
         session_id = await self._ensure_session(conference_uuid, data)
 
         # Flatten AdditionalFields for presentation-level data

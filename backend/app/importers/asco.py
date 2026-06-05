@@ -73,12 +73,21 @@ class ASCOImporter(BaseImporter):
             "errors": [],
         }
 
+        skip_dirs = {"details"}
+
+        batch = 0
         for json_file in sorted(path.glob("**/*.json")):
+            if json_file.parent.name in skip_dirs:
+                continue
             try:
                 data = json.loads(json_file.read_text())
                 content = data.get("getContentById", {}).get("result", data)
                 await self._import_record(conference_uuid, content, results)
+                batch += 1
+                if batch % 500 == 0:
+                    await self.db.commit()
             except Exception as e:
+                await self.db.rollback()
                 results["errors"].append(f"{json_file.name}: {str(e)}")
                 results["skipped"] += 1
 
