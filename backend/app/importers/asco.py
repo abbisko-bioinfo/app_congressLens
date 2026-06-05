@@ -42,7 +42,9 @@ def normalize_name(name: str) -> str:
 
 
 class ASCOImporter(BaseImporter):
-    async def import_folder(self, conference_id: str, folder_path: str) -> dict:
+    async def import_folder(
+        self, conference_id: str, folder_path: str, max_files: int = 0
+    ) -> dict:
         conference_uuid = conference_id
         conference = await self.db.get(Conference, conference_uuid)
         if not conference:
@@ -76,7 +78,10 @@ class ASCOImporter(BaseImporter):
         skip_dirs = {"details"}
 
         batch = 0
+        processed = 0
         for json_file in sorted(path.glob("**/*.json")):
+            if max_files and processed >= max_files:
+                break
             if json_file.parent.name in skip_dirs:
                 continue
             try:
@@ -84,6 +89,7 @@ class ASCOImporter(BaseImporter):
                 content = data.get("getContentById", {}).get("result", data)
                 await self._import_record(conference_uuid, content, results)
                 batch += 1
+                processed += 1
                 if batch % 500 == 0:
                     await self.db.commit()
                     self.db.expire_all()

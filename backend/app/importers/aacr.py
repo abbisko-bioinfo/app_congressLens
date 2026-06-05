@@ -19,8 +19,10 @@ from app.models.topic import Topic
 
 
 class AACRImporter(BaseImporter):
-    async def import_folder(self, conference_id: str, folder_path: str) -> dict:
-        """Import presentation JSON files from the folder."""
+    async def import_folder(
+        self, conference_id: str, folder_path: str, max_files: int = 0
+    ) -> dict:
+        """Import presentation JSON files from the folder. max_files=0 means unlimited."""
         conference_uuid = conference_id
         conference = await self.db.get(Conference, conference_uuid)
         if not conference:
@@ -58,7 +60,10 @@ class AACRImporter(BaseImporter):
         }
 
         batch = 0
+        processed = 0
         for json_file in sorted(path.glob("**/*.json")):
+            if max_files and processed >= max_files:
+                break
             # Skip non-presentation subdirectories
             if json_file.parent.name in skip_dirs:
                 continue
@@ -66,6 +71,7 @@ class AACRImporter(BaseImporter):
                 data = json.loads(json_file.read_text())
                 await self._import_record(conference_uuid, data, results)
                 batch += 1
+                processed += 1
                 if batch % 500 == 0:
                     await self.db.commit()
                     self.db.expire_all()
@@ -77,8 +83,10 @@ class AACRImporter(BaseImporter):
         await self.db.commit()
         return results
 
-    async def import_sessions_folder(self, conference_id: str, folder_path: str) -> dict:
-        """Import session JSON files from the session/ subdirectory with full metadata."""
+    async def import_sessions_folder(
+        self, conference_id: str, folder_path: str, max_files: int = 0
+    ) -> dict:
+        """Import session JSON files. max_files=0 means unlimited."""
         conference_uuid = conference_id
         conference = await self.db.get(Conference, conference_uuid)
         if not conference:
@@ -99,10 +107,14 @@ class AACRImporter(BaseImporter):
             # Fall back: look for _summary files in the root
             session_files = sorted(path.glob("**/*_summary.json"))
 
+        processed = 0
         for json_file in session_files:
+            if max_files and processed >= max_files:
+                break
             try:
                 data = json.loads(json_file.read_text())
                 await self._import_session_record(conference_uuid, data, results)
+                processed += 1
             except Exception as e:
                 await self.db.rollback()
                 results["errors"].append(f"{json_file.name}: {str(e)}")

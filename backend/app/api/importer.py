@@ -12,13 +12,14 @@ async def import_presentations(
     conference_id: str,
     source: str,
     folder_path: str,
+    max_files: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
     importer_cls = IMPORTERS.get(source)
     if not importer_cls:
         raise HTTPException(400, f"Unknown importer source: {source}")
     importer = importer_cls(db)
-    result = await importer.import_folder(conference_id, folder_path)
+    result = await importer.import_folder(conference_id, folder_path, max_files=max_files)
     return result
 
 
@@ -27,6 +28,7 @@ async def import_sessions(
     conference_id: str,
     source: str,
     folder_path: str,
+    max_files: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
     """Import session records from a conference data source.
@@ -41,7 +43,9 @@ async def import_sessions(
 
     # Only AACR has a dedicated session import method
     if hasattr(importer, "import_sessions_folder"):
-        result = await importer.import_sessions_folder(conference_id, folder_path)
+        result = await importer.import_sessions_folder(
+            conference_id, folder_path, max_files=max_files
+        )
         return result
 
     raise HTTPException(
