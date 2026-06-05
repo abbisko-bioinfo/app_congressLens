@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>IVD/LDT NGS Panel Navigator</title>
+
+  <style>
+    :root {
+      --brand-magenta: #a61e63;
+      --brand-blue: #3b5ba2;
+      --accent-cyan: #2fafe1;
+      --accent-rose: #b8195d;
+      --neutral-steel: #9fa6a7;
+      --accent-deep-blue: #1f71b2;
+
+      --success: #1f9d67;
+      --warning: #d98b1e;
+      --danger: #c9354d;
+      --info: #2fafe1;
+
+      --bg-page: #f6f8fb;
+      --bg-surface: #ffffff;
+      --bg-muted: #eef3f8;
+      --text-primary: #172033;
+      --text-secondary: #5e6a78;
+      --text-muted: #8a94a3;
+      --border-subtle: #dde4ec;
+      --border-strong: #b9c3d0;
+
+      --radius-xs: 4px;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-pill: 999px;
+      --shadow-soft: 0 1px 2px rgba(23, 32, 51, 0.06);
+      --shadow-popover: 0 16px 40px rgba(23, 32, 51, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, "Noto Sans SC", "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      letter-spacing: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      color: var(--brand-blue);
+      font-family: inherit;
+      letter-spacing: 0;
+    }
+
+    a,
+    button,
+    input,
+    select,
+    textarea {
+      min-width: 0;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-page);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: var(--radius-pill);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--brand-blue);
+    }
+
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 100%;
+      flex: 0 0 auto;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      padding: 12px 32px;
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      height: auto;
+      overflow: visible;
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(10px);
+    }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand {
+      flex: 0 0 auto;
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .brand-title {
+      color: var(--brand-blue);
+      font-size: 20px;
+      font-weight: 750;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .brand-subtitle {
+      color: var(--text-muted);
+      font-size: 10px;
+      line-height: 1.5;
+      margin-top: 2px;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex: 1 1 auto;
+      min-width: 0;
+      margin-top: 0;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .nav-item {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      min-height: 44px;
+      padding: 0 14px;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      color: var(--text-secondary);
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.35;
+      transition: background 160ms ease, color 160ms ease;
+    }
+
+    .nav-item.active,
+    .nav-item:hover {
+      background: transparent;
+      border-bottom-color: var(--brand-blue);
+      color: var(--brand-blue);
+    }
+
+    .nav-item:focus-visible,
+    .clickable:focus-visible,
+    .back-link:focus-visible,
+    .search:focus-visible,
+    .header-action:focus-visible,
+    .login-status:focus-visible,
+    .filter-bar select:focus-visible,
+    .filter-bar input:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(47, 175, 225, 0.24);
+    }
+
+    .main {
+      flex: 1;
+      width: 100%;
+      max-width: 1360px;
+      padding: 32px 40px;
+      overflow-x: hidden;
+      margin: 0 auto;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 16px;
+      flex: 0 0 auto;
+      min-width: 0;
+    }
+
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 320px;
+      min-height: 36px;
+      padding: 0 12px;
+      background: var(--bg-page);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+    }
+
+    .search-label {
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .search {
+      width: 100%;
+      height: 34px;
+      padding: 0;
+      border: 0;
+      outline: 0;
+      color: var(--text-primary);
+      font-size: 14px;
+      background: transparent;
+    }
+
+    .search::placeholder {
+      color: var(--text-muted);
+    }
+
+    .header-action,
+    .login-status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 0 10px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 650;
+      line-height: 1.5;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+    }
+
+    .header-action:hover,
+    .login-status:hover {
+      background: var(--bg-muted);
+      border-color: var(--border-subtle);
+      color: var(--brand-blue);
+    }
+
+    .login-status {
+      gap: 8px;
+      padding-right: 12px;
+      cursor: default;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-pill);
+      background: var(--success);
+      box-shadow: 0 0 0 3px rgba(31, 157, 103, 0.12);
+    }
+
+    .login-user {
+      color: var(--text-primary);
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .page-header {
+      max-width: 1080px;
+      margin-bottom: 24px;
+    }
+
+    .page-header h1 {
+      margin: 0;
+      color: var(--brand-blue);
+      font-size: 40px;
+      font-weight: 760;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .page-header p {
+      max-width: 920px;
+      margin: 8px 0 0;
+      color: var(--text-secondary);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      padding: 16px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .filter-bar select,
+    .filter-bar input {
+      min-height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-size: 13px;
+    }
+
+    .filter-bar select:hover,
+    .filter-bar input:hover,
+    .search:hover {
+      border-color: var(--border-strong);
+    }
+
+    .filter-bar input {
+      width: min(100%, 260px);
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .section-title {
+      margin: 0 0 16px;
+      color: var(--brand-blue);
+      font-size: 22px;
+      font-weight: 750;
+      line-height: 1.35;
+    }
+
+    .sub-title {
+      margin: 20px 0 10px;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .muted {
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 4px;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th {
+      padding: 12px;
+      background: var(--bg-muted);
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--brand-blue);
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.4;
+      text-align: left;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    .data-table td {
+      padding: 14px 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      font-size: 13px;
+      line-height: 1.5;
+      vertical-align: top;
+    }
+
+    .data-table tr:hover {
+      background: var(--bg-page);
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .clickable {
+      color: var(--brand-blue);
+      cursor: pointer;
+      font-weight: 750;
+      text-decoration: none;
+      transition: color 160ms ease;
+    }
+
+    .clickable:hover {
+      color: var(--brand-magenta);
+      text-decoration: underline;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 10px;
+      border-radius: var(--radius-pill);
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1;
+      white-space: nowrap;
+      margin: 2px 2px 2px 0;
+    }
+
+    .badge.green {
+      background: rgba(31, 157, 103, 0.12);
+      color: var(--success);
+    }
+
+    .badge.blue {
+      background: rgba(59, 91, 162, 0.12);
+      color: var(--brand-blue);
+    }
+
+    .badge.orange {
+      background: rgba(217, 139, 30, 0.14);
+      color: var(--warning);
+    }
+
+    .badge.purple {
+      background: rgba(166, 30, 99, 0.12);
+      color: var(--brand-magenta);
+    }
+
+    .badge.red {
+      background: rgba(201, 53, 77, 0.12);
+      color: var(--danger);
+    }
+
+    .badge.gray {
+      background: var(--bg-muted);
+      color: var(--text-secondary);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      min-width: 0;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .metric-value {
+      color: var(--brand-magenta);
+      font-size: 22px;
+      font-weight: 760;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .metric-label {
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .detail-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .info-label,
+    .info-value {
+      min-width: 0;
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 13px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .info-label {
+      color: var(--text-secondary);
+      background: var(--bg-muted);
+      font-weight: 650;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: var(--brand-blue);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .back-link:hover {
+      color: var(--brand-magenta);
+    }
+
+    .attachment {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 28px;
+      padding: 0 10px;
+      border: 1px solid rgba(59, 91, 162, 0.3);
+      border-radius: var(--radius-sm);
+      background: rgba(59, 91, 162, 0.08);
+      color: var(--brand-blue);
+      font-size: 12px;
+      font-weight: 650;
+      margin-right: 6px;
+      margin-bottom: 6px;
+      transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+    }
+
+    .attachment:hover {
+      background: rgba(59, 91, 162, 0.12);
+      border-color: rgba(59, 91, 162, 0.45);
+    }
+
+    .matrix-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      box-shadow: var(--shadow-soft);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .matrix-table {
+      width: 100%;
+      min-width: 1750px;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .matrix-table th,
+    .matrix-table td {
+      padding: 10px;
+      border-right: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 12px;
+      line-height: 1.45;
+      vertical-align: middle;
+    }
+
+    .matrix-table th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--bg-muted);
+      color: var(--brand-blue);
+      font-weight: 750;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .matrix-table .gene-col {
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      width: 120px;
+      min-width: 120px;
+      background: var(--bg-surface);
+      color: var(--brand-blue);
+      font-weight: 750;
+      text-align: left;
+    }
+
+    .matrix-table th.gene-col {
+      background: var(--bg-muted);
+      z-index: 4;
+    }
+
+    .matrix-table .basic-col {
+      min-width: 130px;
+      text-align: left;
+    }
+
+    .matrix-table .pathway-col {
+      min-width: 190px;
+      text-align: left;
+    }
+
+    .matrix-table .guideline-col {
+      min-width: 220px;
+      text-align: left;
+    }
+
+    .matrix-table .panel-col {
+      min-width: 155px;
+      text-align: center;
+    }
+
+    .cell-tags {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .variant-pill {
+      display: inline-flex;
+      justify-content: center;
+      min-width: 28px;
+      padding: 3px 6px;
+      border-radius: var(--radius-xs);
+      background: var(--bg-muted);
+      color: var(--brand-blue);
+      font-size: 11px;
+      font-weight: 750;
+      line-height: 1.3;
+    }
+
+    .variant-pill.snv { background: rgba(59, 91, 162, 0.12); color: var(--brand-blue); }
+    .variant-pill.indel { background: rgba(47, 175, 225, 0.16); color: #166b8f; }
+    .variant-pill.cnv { background: rgba(217, 139, 30, 0.14); color: var(--warning); }
+    .variant-pill.fus { background: rgba(166, 30, 99, 0.12); color: var(--brand-magenta); }
+    .variant-pill.sv { background: rgba(201, 53, 77, 0.12); color: var(--danger); }
+    .variant-pill.germ { background: var(--bg-muted); color: var(--text-secondary); }
+    .variant-pill.det { background: rgba(31, 113, 178, 0.12); color: var(--accent-deep-blue); }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 16px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .prevalence-bar {
+      display: inline-block;
+      width: 100px;
+      height: 8px;
+      margin-right: 8px;
+      overflow: hidden;
+      vertical-align: middle;
+      background: var(--bg-muted);
+      border-radius: var(--radius-pill);
+    }
+
+    .prevalence-fill {
+      height: 100%;
+      background: var(--brand-blue);
+    }
+
+    .hotspot-map {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .protein-line {
+      position: relative;
+      flex: 1;
+      min-width: 260px;
+      height: 8px;
+      background: var(--border-strong);
+      border-radius: var(--radius-pill);
+    }
+
+    .hotspot {
+      position: absolute;
+      top: -8px;
+      width: 12px;
+      height: 24px;
+      border-radius: var(--radius-pill);
+      background: var(--brand-magenta);
+    }
+
+    .hotspot-labels {
+      display: flex;
+      justify-content: space-between;
+      min-width: 260px;
+      margin-top: 8px;
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 1200px) {
+      .main {
+        padding: 32px;
+      }
+
+      .app-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .nav {
+        order: 3;
+        width: 100%;
+        flex-basis: 100%;
+      }
+
+      .detail-layout,
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 1023px) {
+      .sidebar {
+        padding: 20px 32px;
+      }
+
+      .app-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+
+      .nav {
+        gap: 8px;
+        order: 2;
+        width: 100%;
+      }
+
+      .nav-item {
+        white-space: nowrap;
+      }
+
+      .header-actions {
+        order: 3;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        width: 100%;
+      }
+
+      .search-wrap {
+        width: 100%;
+      }
+
+      .page-header h1 {
+        font-size: 34px;
+        line-height: 1.24;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .sidebar {
+        padding: 20px;
+      }
+
+      .main {
+        padding: 24px 20px;
+      }
+
+      .page-header h1 {
+        font-size: 28px;
+        line-height: 1.28;
+      }
+
+      .page-header p {
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      .filter-bar,
+      .filter-bar select,
+      .filter-bar input {
+        width: 100%;
+      }
+
+      .filter-bar {
+        padding: 14px;
+      }
+
+      .header-action,
+      .login-status {
+        flex: 1 1 auto;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .data-table th,
+      .data-table td {
+        padding: 12px 10px;
+      }
+
+      .section-title {
+        font-size: 20px;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .info-label {
+        padding-bottom: 4px;
+        border-bottom: 0;
+      }
+
+      .info-value {
+        padding-top: 4px;
+      }
+
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div class="app-shell">
+  <header class="sidebar app-header">
+    <div class="brand">
+      <div class="brand-title">IVD/LDT NGS Navigator</div>
+      <div class="brand-subtitle">Panel · Gene · Variant Intelligence</div>
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item active" onclick="showPage('panel-list', this)">NGS Panels</a>
+      <a class="nav-item" onclick="showPage('genes', this)">Genes</a>
+    </nav>
+
+    <div class="header-actions">
+      <label class="search-wrap">
+        <span class="search-label">Search text</span>
+        <input class="search" placeholder="Panel, gene, sample, variant..." />
+      </label>
+      <button class="header-action" type="button">Notification</button>
+      <button class="header-action" type="button">Setting</button>
+      <div class="login-status" tabindex="0" aria-label="Login status">
+        <span class="status-dot"></span>
+        <span>Login status</span>
+        <strong class="login-user">Admin</strong>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- PAGE 1: NGS PANEL LIST -->
+    <section id="panel-list" class="page active">
+      <div class="page-header">
+        <h1>NGS Panel List</h1>
+        <p>
+          Track IVD/LDT NGS panels, accepted sample types, DNA/RNA strategy, TAT, enrichment method,
+          reportable alteration types, regulatory attachments and performance evidence.
+        </p>
+      </div>
+
+      <div class="filter-bar">
+        <select>
+          <option>All Regulatory Status</option>
+          <option>FDA Approved</option>
+          <option>CE-IVD</option>
+          <option>LDT</option>
+          <option>RUO</option>
+        </select>
+
+        <select>
+          <option>All Sample Types</option>
+          <option>FFPE Tumor Tissue</option>
+          <option>Blood / Plasma cfDNA</option>
+          <option>Bone Marrow</option>
+          <option>Saliva / Buccal</option>
+        </select>
+
+        <select>
+          <option>DNA / RNA</option>
+          <option>DNA only</option>
+          <option>RNA only</option>
+          <option>DNA + RNA</option>
+        </select>
+
+        <select>
+          <option>Enrichment Method</option>
+          <option>PCR / Amplicon</option>
+          <option>Probe Capture</option>
+          <option>Hybrid Capture + UMI</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>Panel</th>
+              <th>Vendor / Lab</th>
+              <th>Type</th>
+              <th>Sample Type</th>
+              <th>DNA/RNA</th>
+              <th>TAT</th>
+              <th>Enrichment</th>
+              <th>Genes</th>
+              <th>Reportable Types</th>
+              <th>Status</th>
+              <th>Attachments</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr>
+              <td>
+                <span class="clickable" onclick="showPage('panel-detail')">FoundationOne CDx</span>
+                <div class="muted">Comprehensive genomic profiling</div>
+              </td>
+              <td>Foundation Medicine</td>
+              <td><span class="badge blue">IVD</span></td>
+              <td>FFPE tumor tissue</td>
+              <td><span class="badge gray">DNA</span></td>
+              <td>10–14 days</td>
+              <td>Probe capture</td>
+              <td>324</td>
+              <td>
+                <span class="badge blue">SNV</span>
+                <span class="badge green">INDEL</span>
+                <span class="badge orange">CNV</span>
+                <span class="badge purple">Fusion</span>
+                <span class="badge red">SV</span>
+              </td>
+              <td><span class="badge green">FDA Approved</span></td>
+              <td>
+                <span class="attachment">FDA Summary</span>
+                <span class="attachment">Label PDF</span>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <span class="clickable" onclick="showPage('panel-detail')">Oncomine Dx Target Test</span>
+                <div class="muted">Targeted DNA/RNA assay</div>
+              </td>
+              <td>Thermo Fisher Scientific</td>
+              <td><span class="badge blue">IVD</span></td>
+              <td>FFPE tumor tissue</td>
+              <td><span class="badge purple">DNA + RNA</span></td>
+              <td>4–7 days</td>
+              <td>PCR / Amplicon</td>
+              <td>46</td>
+              <td>
+                <span class="badge blue">SNV</span>
+                <span class="badge green">INDEL</span>
+                <span class="badge purple">Fusion</span>
+              </td>
+              <td><span class="badge green">FDA Approved</span></td>
+              <td>
+                <span class="attachment">FDA Label</span>
+                <span class="attachment">IFU</span>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <span class="clickable" onclick="showPage('panel-detail')">Institutional Solid Tumor 520</span>
+                <div class="muted">Custom hospital LDT panel</div>
+              </td>
+              <td>Academic Medical Center</td>
+              <td><span class="badge orange">LDT</span></td>
+              <td>FFPE / plasma / bone marrow</td>
+              <td><span class="badge purple">DNA + RNA</span></td>
+              <td>7–10 days</td>
+              <td>Hybrid capture + UMI</td>
+              <td>520</td>
+              <td>
+                <span class="badge blue">SNV</span>
+                <span class="badge green">INDEL</span>
+                <span class="badge orange">CNV</span>
+                <span class="badge purple">Fusion</span>
+                <span class="badge gray">Germline</span>
+              </td>
+              <td><span class="badge purple">CLIA/CAP</span></td>
+              <td>
+                <span class="attachment">Validation Report</span>
+                <span class="attachment">SOP</span>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 2: PANEL DETAIL -->
+    <section id="panel-detail" class="page">
+      <span class="back-link" onclick="showPage('panel-list')">← Back to NGS Panel List</span>
+
+      <div class="page-header">
+        <h1>FoundationOne CDx</h1>
+        <p>
+          Panel detail page for technical comparison, sample requirement, reportable range,
+          LOD, QC metrics, regulatory attachment, gene-level probe design and IVD companion diagnostic claims.
+        </p>
+      </div>
+
+      <div class="summary-grid">
+        <div class="metric-card">
+          <div class="metric-value">324</div>
+          <div class="metric-label">Panel genes</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">DNA</div>
+          <div class="metric-label">DNA/RNA strategy</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">Probe</div>
+          <div class="metric-label">Enrichment method</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">10–14d</div>
+          <div class="metric-label">TAT</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">FDA</div>
+          <div class="metric-label">Regulatory source</div>
+        </div>
+      </div>
+
+      <div class="detail-layout">
+        <div class="card">
+          <h2 class="section-title">Basic Information</h2>
+          <div class="info-grid">
+            <div class="info-label">Panel name / 产品名称</div>
+            <div class="info-value">FoundationOne CDx</div>
+
+            <div class="info-label">DNA/RNA dual detection / 是否DNA/RNA双检</div>
+            <div class="info-value">No, DNA-based assay</div>
+
+            <div class="info-label">Approach / 测序方法，是否包含UMI</div>
+            <div class="info-value">Hybrid-capture NGS; UMI status: not specified in this demo</div>
+
+            <div class="info-label">Sample type / 适用样本类型</div>
+            <div class="info-value">FFPE tumor tissue</div>
+
+            <div class="info-label">Panel genes / 基因数</div>
+            <div class="info-value">324 genes</div>
+
+            <div class="info-label"># genes with whole exons covered / 全外覆盖基因数</div>
+            <div class="info-value">Example: 309 genes</div>
+
+            <div class="info-label">Panel size / 覆盖长度</div>
+            <div class="info-value">Example: 1.1 Mb targeted territory</div>
+
+            <div class="info-label">Price per test / 测试单价</div>
+            <div class="info-value">To be collected</div>
+
+            <div class="info-label">Data size / 测序数据量</div>
+            <div class="info-value">Example: 8–12 Gb per sample</div>
+
+            <div class="info-label">Sequencing depth / 测序深度</div>
+            <div class="info-value">Median depth example: 500× raw depth</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Regulatory & Attachments</h2>
+          <p class="muted">
+            Store FDA, NMPA, CE-IVD, PMDA, lab validation documents or internal review files.
+          </p>
+          <div>
+            <span class="attachment">FDA Approval Letter</span>
+            <span class="attachment">FDA SSED</span>
+            <span class="attachment">Product Label</span>
+            <span class="attachment">Analytical Validation</span>
+            <span class="attachment">Reimbursement Note</span>
+          </div>
+
+          <h3 class="sub-title">Other Features for Comparison</h3>
+          <div class="info-grid">
+            <div class="info-label">MSI</div>
+            <div class="info-value">Reported</div>
+            <div class="info-label">TMB</div>
+            <div class="info-value">Reported</div>
+            <div class="info-label">HRD</div>
+            <div class="info-value">Not available</div>
+            <div class="info-label">Germline flag</div>
+            <div class="info-value">Not primary use</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">IVD Companion Diagnostic Claims</h2>
+        <p class="muted">
+          Approved use cases for tumor type × biomarker × drug selection. This section is intended for IVD-approved panels.
+        </p>
+
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>Tumor Type</th>
+              <th>Biomarker / Gene</th>
+              <th>Alteration</th>
+              <th>Drug</th>
+              <th>Clinical Use</th>
+              <th>Regulatory Source</th>
+              <th>Attachment</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr>
+              <td>NSCLC</td>
+              <td>EGFR</td>
+              <td>Exon 19 deletion, L858R, T790M</td>
+              <td>Osimertinib / EGFR TKIs</td>
+              <td><span class="badge green">Companion Dx</span></td>
+              <td>FDA PMA / product label</td>
+              <td><span class="attachment">FDA Claim</span></td>
+            </tr>
+
+            <tr>
+              <td>NSCLC</td>
+              <td>ALK</td>
+              <td>ALK rearrangement / fusion</td>
+              <td>Alectinib / Lorlatinib / ALK inhibitors</td>
+              <td><span class="badge green">Companion Dx</span></td>
+              <td>FDA PMA / product label</td>
+              <td><span class="attachment">FDA Claim</span></td>
+            </tr>
+
+            <tr>
+              <td>Melanoma</td>
+              <td>BRAF</td>
+              <td>V600E / V600K</td>
+              <td>Dabrafenib + Trametinib</td>
+              <td><span class="badge green">Companion Dx</span></td>
+              <td>FDA PMA / product label</td>
+              <td><span class="attachment">Drug Label</span></td>
+            </tr>
+
+            <tr>
+              <td>Ovarian Cancer</td>
+              <td>BRCA1 / BRCA2</td>
+              <td>Pathogenic alteration</td>
+              <td>PARP inhibitor</td>
+              <td><span class="badge blue">Therapy Selection</span></td>
+              <td>FDA / guideline-supported</td>
+              <td><span class="attachment">Evidence File</span></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h2 class="section-title">Performance</h2>
+          <div class="info-grid">
+            <div class="info-label">Sensitivity / 灵敏度</div>
+            <div class="info-value">≥95% for selected validated variants</div>
+            <div class="info-label">Specificity / 特异性</div>
+            <div class="info-value">≥99% for selected variant classes</div>
+            <div class="info-label">Reproducibility / 重现性</div>
+            <div class="info-value">Inter-run / intra-run reproducibility to be recorded</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Sample Requirement / 样本要求</h2>
+          <div class="info-grid">
+            <div class="info-label">Required blood or tumor amount</div>
+            <div class="info-value">FFPE block or 10 unstained slides; exact amount to be collected</div>
+            <div class="info-label">Paired sample required?</div>
+            <div class="info-value">No paired blood sample required in routine tumor profiling</div>
+            <div class="info-label">Tumor purity</div>
+            <div class="info-value">Recommended minimum tumor content: example ≥20%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h2 class="section-title">Positive Cutoff / Reportable Range</h2>
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>Variant Type</th>
+              <th>Reportable Range / 阳性判断值</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr><td>SNV</td><td>Example: VAF ≥5%</td></tr>
+            <tr><td>InDel</td><td>Example: VAF ≥5%</td></tr>
+            <tr><td>CNV</td><td>Copy number threshold to be collected</td></tr>
+            <tr><td>SV / Fusion</td><td>Breakpoint / rearrangement criteria to be collected</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">LOD</h2>
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>Variant Type</th>
+              <th>LOD</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr><td>SNV</td><td>5% VAF</td></tr>
+            <tr><td>KRAS hotspot SNV</td><td>Example: 5% VAF</td></tr>
+            <tr><td>InDel</td><td>5% VAF</td></tr>
+            <tr><td>CNV</td><td>Example: copy number dependent</td></tr>
+            <tr><td>SV</td><td>Example: fusion read support dependent</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">QC Metrics</h2>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>QC Metric</th>
+              <th>Recommended / Required Value</th>
+              <th>Comment</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td>Tumor purity / 肿瘤占比</td>
+              <td>Example: ≥20%</td>
+              <td>For tissue samples</td>
+            </tr>
+            <tr>
+              <td>cfDNA input</td>
+              <td>Not applicable / or collect ng value</td>
+              <td>For liquid biopsy panels</td>
+            </tr>
+            <tr>
+              <td>Pre-library amount</td>
+              <td>Example: 50–200 ng</td>
+              <td>Depends on assay</td>
+            </tr>
+            <tr>
+              <td>Unique Depth / 去重后有效深度</td>
+              <td>Example: ≥250×</td>
+              <td>Especially important for UMI-based assays</td>
+            </tr>
+            <tr>
+              <td>Depth.ge.20.pct.real</td>
+              <td>Example: ≥95%</td>
+              <td>Percentage of target bases covered ≥20×</td>
+            </tr>
+            <tr>
+              <td>Q30 ratio</td>
+              <td>Example: ≥80%</td>
+              <td>Base quality threshold</td>
+            </tr>
+            <tr>
+              <td>Alignment rate / 比对率</td>
+              <td>Example: ≥95%</td>
+              <td>Mapping quality indicator</td>
+            </tr>
+            <tr>
+              <td>Cross-contamination method / 样本交叉污染检测方法</td>
+              <td>SNP fingerprint / contamination estimator</td>
+              <td>Record method and cutoff</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Panel Gene List & Probe Design</h2>
+        <p class="muted">
+          This table records each gene’s probe design, exon coverage, hotspot coverage,
+          special detection limitation and gene-level performance. Only the gene symbol is clickable.
+        </p>
+
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>Gene</th>
+              <th>Transcript</th>
+              <th>Coverage Design</th>
+              <th>Whole Exon Covered</th>
+              <th>Hotspot / Region</th>
+              <th>Reportable Types</th>
+              <th>Gene-specific LOD</th>
+              <th>Known Limitation</th>
+              <th>Pathway</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td><span class="clickable" onclick="showPage('gene-detail')">EGFR</span></td>
+              <td>NM_005228</td>
+              <td>Exon 18–21 hotspot + selected intronic probes</td>
+              <td>No</td>
+              <td>L858R, Ex19del, T790M, C797S, Ex20ins</td>
+              <td>SNV, INDEL, AMP</td>
+              <td>SNV 5% VAF</td>
+              <td>Large insertion and complex indel sensitivity may vary</td>
+              <td>RTK / RAS / MAPK</td>
+            </tr>
+            <tr>
+              <td><span class="clickable" onclick="showPage('gene-detail')">ALK</span></td>
+              <td>NM_004304</td>
+              <td>Selected intron breakpoint + coding exons</td>
+              <td>No</td>
+              <td>Fusion breakpoint regions</td>
+              <td>Fusion, SV</td>
+              <td>Fusion read support dependent</td>
+              <td>Partner-dependent detectability</td>
+              <td>RTK Signaling</td>
+            </tr>
+            <tr>
+              <td><span class="clickable" onclick="showPage('gene-detail')">BRCA1</span></td>
+              <td>NM_007294</td>
+              <td>Whole exon + selected splice regions</td>
+              <td>Yes</td>
+              <td>Pathogenic SNV / INDEL</td>
+              <td>SNV, INDEL, CNV, Germline flag</td>
+              <td>SNV 5% VAF</td>
+              <td>Germline confirmation may require orthogonal workflow</td>
+              <td>DNA Repair / HRR</td>
+            </tr>
+            <tr>
+              <td><span class="clickable" onclick="showPage('gene-detail')">ERBB2</span></td>
+              <td>NM_004448</td>
+              <td>Whole exon + copy number probes</td>
+              <td>Yes</td>
+              <td>Amplification, exon 20 insertion</td>
+              <td>SNV, INDEL, AMP</td>
+              <td>CNV dependent</td>
+              <td>Low purity may affect amplification calling</td>
+              <td>HER2 / PI3K-AKT</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 3: GENES MATRIX -->
+    <section id="genes" class="page">
+      <div class="page-header">
+        <h1>Genes</h1>
+        <p>
+          Unified gene intelligence table combining basic gene information, pathway annotation,
+          guideline / consensus recommendation and panel-specific detection coverage.
+          Only the gene symbol is clickable; clicking other cells will not open gene detail.
+        </p>
+      </div>
+
+      <div class="filter-bar">
+        <select>
+          <option>All Pathways</option>
+          <option>RTK / RAS / MAPK</option>
+          <option>PI3K / AKT / MTOR</option>
+          <option>DNA Repair / HRR</option>
+          <option>Cell Cycle</option>
+        </select>
+
+        <select>
+          <option>All Recommendation Status</option>
+          <option>NCCN Recommended</option>
+          <option>ESMO Recommended</option>
+          <option>CAP/AMP Tier I</option>
+          <option>Investigational</option>
+        </select>
+
+        <select>
+          <option>All Sample Types</option>
+          <option>FFPE Tumor Tissue</option>
+          <option>Plasma cfDNA</option>
+          <option>Bone Marrow</option>
+        </select>
+
+        <select>
+          <option>All Panels</option>
+          <option>FoundationOne CDx</option>
+          <option>Oncomine Dx Target Test</option>
+          <option>Institutional Solid Tumor 520</option>
+          <option>Custom Panel</option>
+        </select>
+
+        <input placeholder="Custom panel genes: EGFR,ALK,BRAF..." />
+      </div>
+
+      <div class="legend">
+        <span class="legend-item"><span class="variant-pill snv">SNV</span> Single nucleotide variant</span>
+        <span class="legend-item"><span class="variant-pill indel">ID</span> INDEL</span>
+        <span class="legend-item"><span class="variant-pill cnv">CNV</span> Copy number variation</span>
+        <span class="legend-item"><span class="variant-pill fus">FUS</span> Fusion</span>
+        <span class="legend-item"><span class="variant-pill sv">SV</span> Structural variant</span>
+        <span class="legend-item"><span class="variant-pill cnv">AMP</span> Amplification</span>
+        <span class="legend-item"><span class="variant-pill sv">DEL</span> Deletion</span>
+        <span class="legend-item"><span class="variant-pill germ">GL</span> Germline</span>
+        <span class="legend-item"><span class="variant-pill det">DET</span> Detected but reportable class unknown</span>
+      </div>
+
+      <div class="matrix-wrap">
+        <table class="matrix-table">
+          <thead>
+          <tr>
+            <th class="gene-col">Symbol</th>
+
+            <th class="basic-col">RefSeq ID</th>
+            <th class="basic-col">MANE Ensembl ID</th>
+            <th class="basic-col">Oncogene</th>
+            <th class="basic-col">TSG</th>
+
+            <th class="pathway-col">Primary Pathway</th>
+            <th class="pathway-col">Secondary Pathway</th>
+
+            <th class="guideline-col">Guideline / Consensus</th>
+            <th class="guideline-col">Recommended Tumor Types</th>
+
+            <th class="panel-col">FoundationOne CDx<br><span class="muted">FFPE · DNA</span></th>
+            <th class="panel-col">Oncomine Dx<br><span class="muted">FFPE · DNA/RNA</span></th>
+            <th class="panel-col">MSK-IMPACT<br><span class="muted">FFPE · DNA</span></th>
+            <th class="panel-col">Guardant360 CDx<br><span class="muted">Plasma · cfDNA</span></th>
+            <th class="panel-col">Institutional ST520<br><span class="muted">FFPE/Plasma · DNA/RNA</span></th>
+            <th class="panel-col">Custom Lung Panel<br><span class="muted">User-defined</span></th>
+          </tr>
+          </thead>
+
+          <tbody>
+          <tr>
+            <td class="gene-col"><span class="clickable" onclick="showPage('gene-detail')">EGFR</span></td>
+            <td class="basic-col">NM_005228</td>
+            <td class="basic-col">ENST00000275493</td>
+            <td class="basic-col"><span class="badge green">Yes</span></td>
+            <td class="basic-col"><span class="badge gray">No</span></td>
+            <td class="pathway-col">RTK / RAS / MAPK</td>
+            <td class="pathway-col">PI3K-AKT; JAK-STAT</td>
+            <td class="guideline-col">
+              <span class="badge green">NCCN</span>
+              <span class="badge green">ESMO</span>
+              <span class="badge blue">CAP/AMP Tier I</span>
+            </td>
+            <td class="guideline-col">NSCLC; glioma selected contexts</td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span><span class="variant-pill cnv">AMP</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span><span class="variant-pill cnv">CNV</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span><span class="variant-pill cnv">AMP</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span><span class="variant-pill cnv">CNV</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span></div></td>
+          </tr>
+
+          <tr>
+            <td class="gene-col"><span class="clickable" onclick="showPage('gene-detail')">ALK</span></td>
+            <td class="basic-col">NM_004304</td>
+            <td class="basic-col">ENST00000389048</td>
+            <td class="basic-col"><span class="badge green">Yes</span></td>
+            <td class="basic-col"><span class="badge gray">No</span></td>
+            <td class="pathway-col">RTK Signaling</td>
+            <td class="pathway-col">MAPK; PI3K-AKT</td>
+            <td class="guideline-col">
+              <span class="badge green">NCCN</span>
+              <span class="badge green">ESMO</span>
+              <span class="badge blue">CAP/AMP Tier I</span>
+            </td>
+            <td class="guideline-col">NSCLC; ALCL; inflammatory myofibroblastic tumor</td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill fus">FUS</span><span class="variant-pill sv">SV</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill fus">FUS</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill sv">SV</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill det">DET</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill fus">FUS</span><span class="variant-pill sv">SV</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill fus">FUS</span></div></td>
+          </tr>
+
+          <tr>
+            <td class="gene-col"><span class="clickable" onclick="showPage('gene-detail')">BRAF</span></td>
+            <td class="basic-col">NM_004333</td>
+            <td class="basic-col">ENST00000646891</td>
+            <td class="basic-col"><span class="badge green">Yes</span></td>
+            <td class="basic-col"><span class="badge gray">No</span></td>
+            <td class="pathway-col">MAPK Pathway</td>
+            <td class="pathway-col">RTK / RAS downstream</td>
+            <td class="guideline-col">
+              <span class="badge green">NCCN</span>
+              <span class="badge green">ESMO</span>
+              <span class="badge blue">CAP/AMP Tier I</span>
+            </td>
+            <td class="guideline-col">Melanoma; CRC; NSCLC; thyroid cancer</td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span></div></td>
+          </tr>
+
+          <tr>
+            <td class="gene-col"><span class="clickable" onclick="showPage('gene-detail')">ERBB2</span></td>
+            <td class="basic-col">NM_004448</td>
+            <td class="basic-col">ENST00000269571</td>
+            <td class="basic-col"><span class="badge green">Yes</span></td>
+            <td class="basic-col"><span class="badge gray">No</span></td>
+            <td class="pathway-col">HER2 / PI3K-AKT</td>
+            <td class="pathway-col">RTK Signaling</td>
+            <td class="guideline-col">
+              <span class="badge green">NCCN</span>
+              <span class="badge blue">ASCO/CAP</span>
+              <span class="badge purple">Consensus</span>
+            </td>
+            <td class="guideline-col">Breast; gastric; NSCLC; CRC selected contexts</td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span><span class="variant-pill cnv">AMP</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span><span class="variant-pill cnv">CNV</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill cnv">AMP</span><span class="variant-pill snv">SNV</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span><span class="variant-pill cnv">CNV</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill det">DET</span></div></td>
+          </tr>
+
+          <tr>
+            <td class="gene-col"><span class="clickable" onclick="showPage('gene-detail')">BRCA1</span></td>
+            <td class="basic-col">NM_007294</td>
+            <td class="basic-col">ENST00000357654</td>
+            <td class="basic-col"><span class="badge gray">No</span></td>
+            <td class="basic-col"><span class="badge purple">Yes</span></td>
+            <td class="pathway-col">DNA Repair / HRR</td>
+            <td class="pathway-col">Genomic instability</td>
+            <td class="guideline-col">
+              <span class="badge green">NCCN</span>
+              <span class="badge green">ESMO</span>
+              <span class="badge blue">CAP/AMP Tier I</span>
+            </td>
+            <td class="guideline-col">Breast; ovarian; prostate; pancreatic cancer</td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span><span class="variant-pill cnv">DEL</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill det">DET</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span><span class="variant-pill cnv">CNV</span><span class="variant-pill germ">GL</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span><span class="variant-pill germ">GL</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span></div></td>
+          </tr>
+
+          <tr>
+            <td class="gene-col"><span class="clickable" onclick="showPage('gene-detail')">MET</span></td>
+            <td class="basic-col">NM_000245</td>
+            <td class="basic-col">ENST00000318493</td>
+            <td class="basic-col"><span class="badge green">Yes</span></td>
+            <td class="basic-col"><span class="badge gray">No</span></td>
+            <td class="pathway-col">RTK Signaling</td>
+            <td class="pathway-col">MAPK; PI3K-AKT</td>
+            <td class="guideline-col">
+              <span class="badge green">NCCN</span>
+              <span class="badge purple">Consensus</span>
+            </td>
+            <td class="guideline-col">NSCLC; gastric cancer selected contexts</td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span><span class="variant-pill cnv">AMP</span><span class="variant-pill sv">SV</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill cnv">CNV</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill det">DET</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill snv">SNV</span><span class="variant-pill indel">ID</span><span class="variant-pill cnv">AMP</span></div></td>
+            <td class="panel-col"><div class="cell-tags"><span class="variant-pill det">DET</span></div></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PAGE 4: GENE DETAIL -->
+    <section id="gene-detail" class="page">
+      <span class="back-link" onclick="showPage('genes')">← Back to Genes</span>
+
+      <div class="page-header">
+        <h1>EGFR</h1>
+        <p>
+          Gene-level information page for transcript, biological annotation, pathway,
+          guideline recommendation, mutation prevalence, hotspot distribution and panel-specific coverage.
+        </p>
+      </div>
+
+      <div class="detail-layout">
+        <div class="card">
+          <h2 class="section-title">Basic Gene Information</h2>
+          <div class="info-grid">
+            <div class="info-label">Gene symbol</div>
+            <div class="info-value">EGFR</div>
+
+            <div class="info-label">Full name</div>
+            <div class="info-value">Epidermal Growth Factor Receptor</div>
+
+            <div class="info-label">RefSeq transcript</div>
+            <div class="info-value">NM_005228</div>
+
+            <div class="info-label">MANE Ensembl transcript</div>
+            <div class="info-value">ENST00000275493</div>
+
+            <div class="info-label">Chromosome</div>
+            <div class="info-value">chr7</div>
+
+            <div class="info-label">Gene role</div>
+            <div class="info-value">
+              <span class="badge green">Oncogene</span>
+              <span class="badge gray">Not TSG</span>
+            </div>
+
+            <div class="info-label">Primary pathway</div>
+            <div class="info-value">RTK / RAS / MAPK; PI3K-AKT; JAK-STAT</div>
+
+            <div class="info-label">Common actionable alterations</div>
+            <div class="info-value">L858R, exon 19 deletion, T790M, C797S, exon 20 insertion, amplification</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Hotspot Map</h2>
+          <p class="muted">
+            Demo protein-domain style visualization for high-frequency EGFR hotspot regions.
+          </p>
+
+          <div class="hotspot-map">
+            <div class="protein-line">
+              <span class="hotspot" style="left: 36%;" title="Exon 19 deletion"></span>
+              <span class="hotspot" style="left: 58%;" title="T790M"></span>
+              <span class="hotspot" style="left: 72%;" title="L858R"></span>
+              <span class="hotspot" style="left: 82%;" title="C797S"></span>
+            </div>
+          </div>
+
+          <div class="hotspot-labels">
+            <span>ECD</span>
+            <span>TM</span>
+            <span>Kinase domain</span>
+            <span>C-tail</span>
+          </div>
+
+          <h3 class="sub-title">Key hotspots</h3>
+          <div>
+            <span class="badge blue">Exon 19 deletion</span>
+            <span class="badge blue">L858R</span>
+            <span class="badge orange">T790M</span>
+            <span class="badge orange">C797S</span>
+            <span class="badge purple">Exon 20 insertion</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Mutation Prevalence by Database / Tumor Type</h2>
+        <p class="muted">
+          Store mutation prevalence from public or internal databases. Values below are demo placeholders.
+        </p>
+
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>Database</th>
+              <th>Tumor Type</th>
+              <th>Mutation Prevalence</th>
+              <th>Common Alterations</th>
+              <th>Sample Count</th>
+              <th>Data Version</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            <tr>
+              <td>Internal Cohort</td>
+              <td>NSCLC</td>
+              <td>
+                <span class="prevalence-bar"><span class="prevalence-fill" style="width: 38%;"></span></span>
+                38%
+              </td>
+              <td>Ex19del, L858R, T790M, Ex20ins</td>
+              <td>2,840</td>
+              <td>2026-Q2</td>
+            </tr>
+
+            <tr>
+              <td>cBioPortal</td>
+              <td>Lung adenocarcinoma</td>
+              <td>
+                <span class="prevalence-bar"><span class="prevalence-fill" style="width: 29%;"></span></span>
+                29%
+              </td>
+              <td>L858R, Ex19del, amplification</td>
+              <td>Public studies</td>
+              <td>To sync</td>
+            </tr>
+
+            <tr>
+              <td>COSMIC</td>
+              <td>NSCLC</td>
+              <td>
+                <span class="prevalence-bar"><span class="prevalence-fill" style="width: 31%;"></span></span>
+                31%
+              </td>
+              <td>Kinase domain SNV / INDEL</td>
+              <td>Public records</td>
+              <td>To sync</td>
+            </tr>
+
+            <tr>
+              <td>GENIE</td>
+              <td>Pan-cancer</td>
+              <td>
+                <span class="prevalence-bar"><span class="prevalence-fill" style="width: 8%;"></span></span>
+                8%
+              </td>
+              <td>SNV, INDEL, amplification</td>
+              <td>Public cohort</td>
+              <td>To sync</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h2 class="section-title">Hotspot Alterations</h2>
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>Alteration</th>
+              <th>Region</th>
+              <th>Functional Effect</th>
+              <th>Clinical Relevance</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td>Exon 19 deletion</td>
+              <td>Exon 19</td>
+              <td>Activating</td>
+              <td><span class="badge green">EGFR TKI sensitive</span></td>
+            </tr>
+            <tr>
+              <td>L858R</td>
+              <td>Exon 21</td>
+              <td>Activating</td>
+              <td><span class="badge green">EGFR TKI sensitive</span></td>
+            </tr>
+            <tr>
+              <td>T790M</td>
+              <td>Exon 20</td>
+              <td>Resistance</td>
+              <td><span class="badge orange">Resistance biomarker</span></td>
+            </tr>
+            <tr>
+              <td>C797S</td>
+              <td>Exon 20</td>
+              <td>Resistance</td>
+              <td><span class="badge orange">Acquired resistance</span></td>
+            </tr>
+            <tr>
+              <td>Exon 20 insertion</td>
+              <td>Exon 20</td>
+              <td>Activating / atypical</td>
+              <td><span class="badge purple">Specific therapy context</span></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Guideline / Consensus Recommendation</h2>
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>Source</th>
+              <th>Tumor Type</th>
+              <th>Recommendation</th>
+              <th>Evidence Level</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td>NCCN</td>
+              <td>NSCLC</td>
+              <td>EGFR mutation testing recommended for treatment selection</td>
+              <td><span class="badge green">Strong</span></td>
+            </tr>
+            <tr>
+              <td>ESMO</td>
+              <td>NSCLC</td>
+              <td>Actionable EGFR alterations should be reported</td>
+              <td><span class="badge green">ESCAT I</span></td>
+            </tr>
+            <tr>
+              <td>CAP / AMP / ASCO</td>
+              <td>NSCLC</td>
+              <td>EGFR is a core predictive biomarker</td>
+              <td><span class="badge blue">Tier I</span></td>
+            </tr>
+            <tr>
+              <td>Institutional MTB</td>
+              <td>Pan-cancer</td>
+              <td>Report activating and resistance mutations with therapy context</td>
+              <td><span class="badge purple">Internal consensus</span></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Panel-specific EGFR Coverage</h2>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+            <tr>
+              <th>Panel</th>
+              <th>Sample Type</th>
+              <th>DNA/RNA</th>
+              <th>Covered Region</th>
+              <th>Reportable Types</th>
+              <th>LOD</th>
+              <th>Probe Design / Limitation</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td>FoundationOne CDx</td>
+              <td>FFPE tissue</td>
+              <td>DNA</td>
+              <td>Exon 18–21 hotspot</td>
+              <td>SNV, INDEL, AMP</td>
+              <td>5% VAF example</td>
+              <td>Hybrid capture; complex insertion sensitivity depends on design</td>
+            </tr>
+            <tr>
+              <td>Oncomine Dx Target Test</td>
+              <td>FFPE tissue</td>
+              <td>DNA/RNA</td>
+              <td>EGFR hotspot regions</td>
+              <td>SNV, INDEL</td>
+              <td>5% VAF example</td>
+              <td>Amplicon design; hotspot-focused</td>
+            </tr>
+            <tr>
+              <td>Guardant360 CDx</td>
+              <td>Plasma cfDNA</td>
+              <td>DNA</td>
+              <td>EGFR actionable mutations</td>
+              <td>SNV, INDEL, AMP</td>
+              <td>cfDNA dependent</td>
+              <td>Liquid biopsy sensitivity depends on ctDNA fraction</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  function showPage(pageId, navElement) {
+    document.querySelectorAll('.page').forEach(page => {
+      page.classList.remove('active');
+    });
+
+    const page = document.getElementById(pageId);
+    if (page) {
+      page.classList.add('active');
+    }
+
+    if (navElement) {
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      navElement.classList.add('active');
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>

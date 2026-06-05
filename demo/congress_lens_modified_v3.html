@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Congress Lens | Conference Intelligence Workspace</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Manrope:wght@200..800&family=Public+Sans:wght@100..900&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#204389",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#3b5ba2",
+                        "on-primary-container": "#c9d6ff",
+                        "secondary": "#ad2569",
+                        "on-secondary": "#ffffff",
+                        "secondary-container": "#ff68aa",
+                        "on-secondary-container": "#6d003d",
+                        "tertiary": "#653c00",
+                        "tertiary-container": "#865100",
+                        "background": "#faf8ff",
+                        "surface": "#faf8ff",
+                        "surface-variant": "#e3e2e8",
+                        "on-surface": "#1a1b20",
+                        "on-surface-variant": "#444651",
+                        "outline": "#747782",
+                        "outline-variant": "#c4c6d2",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f4f3fa",
+                        "surface-container": "#eeedf4",
+                        "surface-container-high": "#e8e7ee",
+                        "surface-container-highest": "#e3e2e8",
+                        "brand-blue": "#204389",
+                        "brand-magenta": "#ad2569"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope", "sans-serif"],
+                        "display": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Public Sans", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #faf8ff; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #faf8ff; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e3e2e8; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3b5ba2; }
+        .calendar-grid { display: grid; grid-template-columns: 80px repeat(5, minmax(180px, 1fr)); grid-auto-rows: minmax(86px, auto); }
+        .calendar-cell { border-bottom: 1px solid #e3e2e8; border-right: 1px solid #e3e2e8; }
+        .table-sticky th { position: sticky; top: 0; z-index: 10; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+    <div id="root"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/history@5/umd/history.development.js"></script>
+    <script src="https://unpkg.com/react-router@6.3.0/umd/react-router.development.js"></script>
+    <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+        const { createRoot } = ReactDOM;
+        const { HashRouter, Routes, Route, Link, useNavigate, useLocation, useParams } = ReactRouterDOM;
+
+        const conferences = [
+            {
+                congress: 'ASCO2026', name: 'ASCO Annual Meeting 2026', abbr: 'ASCO', year: 2026,
+                dateRange: 'May 29 - Jun 02, 2026', start: '2026-05-29', location: 'Chicago, IL',
+                status: 'Imported', sessions: 4, presentations: 12, theme: 'Clinical oncology evidence, trials, biomarkers and care delivery'
+            },
+            {
+                congress: 'AACR2026', name: 'AACR Annual Meeting 2026', abbr: 'AACR', year: 2026,
+                dateRange: 'Apr 17 - Apr 22, 2026', start: '2026-04-17', location: 'San Diego, CA',
+                status: 'Indexed', sessions: 3, presentations: 8, theme: 'Cancer discovery, translational biology and therapeutic innovation'
+            },
+            {
+                congress: 'ESMO2025', name: 'ESMO Congress 2025', abbr: 'ESMO', year: 2025,
+                dateRange: 'Oct 17 - Oct 21, 2025', start: '2025-10-17', location: 'Berlin, Germany',
+                status: 'Archived', sessions: 3, presentations: 7, theme: 'Global oncology practice and late-breaking clinical data'
+            }
+        ].sort((a, b) => new Date(b.start) - new Date(a.start));
+
+        const sessionRows = [
+            { congress: 'ASCO2026', id: 'S001', date: '2026-05-29', time: '08:00', end: '09:30', type: 'Plenary', title: 'Opening Session: Precision Oncology at Scale', room: 'Hall A', track: 'General Oncology' },
+            { congress: 'ASCO2026', id: 'S002', date: '2026-05-29', time: '10:00', end: '11:20', type: 'Oral Abstract', title: 'Lung Cancer Immunotherapy: Resistance and Rechallenge', room: 'Room W375', track: 'Thoracic Oncology' },
+            { congress: 'ASCO2026', id: 'S003', date: '2026-05-30', time: '13:00', end: '14:30', type: 'Poster Discussion', title: 'GI Cancer Biomarkers and Minimal Residual Disease', room: 'Poster Hall B', track: 'GI Oncology' },
+            { congress: 'ASCO2026', id: 'S004', date: '2026-06-01', time: '09:00', end: '10:30', type: 'Education', title: 'AI-Supported Clinical Trial Matching', room: 'Digital Theater', track: 'Care Delivery' },
+            { congress: 'AACR2026', id: 'S101', date: '2026-04-17', time: '09:00', end: '10:30', type: 'Major Symposium', title: 'Tumor Microenvironment and Therapeutic Response', room: 'Ballroom 20', track: 'Immunology' },
+            { congress: 'AACR2026', id: 'S102', date: '2026-04-18', time: '11:00', end: '12:15', type: 'Minisymposium', title: 'Next Generation ADC Design', room: 'Room 6A', track: 'Drug Discovery' },
+            { congress: 'ESMO2025', id: 'S201', date: '2025-10-17', time: '08:30', end: '10:00', type: 'Presidential', title: 'Practice-Changing Trials in Solid Tumors', room: 'Main Auditorium', track: 'Late Breaking' },
+            { congress: 'ESMO2025', id: 'S202', date: '2025-10-18', time: '14:00', end: '15:15', type: 'Proffered Paper', title: 'Breast Cancer: New Endocrine and Targeted Options', room: 'Berlin Hall 2', track: 'Breast Cancer' }
+        ].sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+
+        const presentations = [
+            { congress: 'ASCO2026', id: 'P1001', sessionId: 'S001', date: '2026-05-29', time: '08:15', type: 'Keynote', title: 'Building a Real-Time Oncology Evidence Graph', presenter: 'M. Chen', org: 'Global Cancer Institute', topic: 'Real-world evidence', abstract: 'This presentation introduces a federated evidence graph that links trial outcomes, molecular subtypes, guideline recommendations and post-marketing safety signals for oncology decision support.', attachments: ['slides.pdf', 'evidence_graph_schema.json'], comments: ['Prioritize for CI dashboard demo.', 'Map entities to disease navigator module.'], starred: true },
+            { congress: 'ASCO2026', id: 'P1002', sessionId: 'S002', date: '2026-05-29', time: '10:05', type: 'Oral', title: 'PD-1 Rechallenge After Acquired Resistance in NSCLC', presenter: 'A. Rivera', org: 'Northbridge Oncology', topic: 'NSCLC / ICI', abstract: 'A multicenter cohort evaluates outcomes after PD-1 rechallenge, with exploratory microbiome and methylation correlates of response.', attachments: ['abstract.html', 'supplementary_table.xlsx'], comments: ['Connect with microbiome response project.'], starred: true },
+            { congress: 'ASCO2026', id: 'P1003', sessionId: 'S002', date: '2026-05-29', time: '10:25', type: 'Oral', title: 'ctDNA-Guided Treatment Escalation in Advanced Lung Cancer', presenter: 'S. Gupta', org: 'Precision Trials Network', topic: 'ctDNA', abstract: 'Serial ctDNA dynamics are used to stratify patients for early escalation, with endpoints including PFS, molecular response and treatment discontinuation.', attachments: ['poster.png'], comments: [], starred: false },
+            { congress: 'ASCO2026', id: 'P1004', sessionId: 'S003', date: '2026-05-30', time: '13:10', type: 'Poster', title: 'MRD Signal Integration for Colorectal Cancer Surveillance', presenter: 'L. Wang', org: 'East Bay Medical Center', topic: 'GI / MRD', abstract: 'The study compares methylation-informed and mutation-informed MRD assays in post-surgical colorectal cancer surveillance.', attachments: ['poster.pdf', 'methods.docx'], comments: ['Potential patent tracking keyword: methylation-informed MRD.'], starred: false },
+            { congress: 'ASCO2026', id: 'P1005', sessionId: 'S004', date: '2026-06-01', time: '09:15', type: 'Education', title: 'LLM Workflow for Trial Matching and Eligibility Review', presenter: 'D. Patel', org: 'Care AI Lab', topic: 'AI workflow', abstract: 'A practical workflow combines structured eligibility extraction, patient timeline summaries and human review for trial matching.', attachments: ['workflow_diagram.svg'], comments: ['Use as reference for app agent module.'], starred: true },
+            { congress: 'AACR2026', id: 'P2001', sessionId: 'S101', date: '2026-04-17', time: '09:10', type: 'Invited Talk', title: 'Myeloid Remodeling Under Checkpoint Blockade', presenter: 'R. Nakamura', org: 'Kyoto Cancer Center', topic: 'TME / Immunology', abstract: 'Single-cell profiling identifies myeloid programs associated with durable checkpoint inhibitor response.', attachments: ['single_cell_marker_table.csv'], comments: [], starred: false },
+            { congress: 'AACR2026', id: 'P2002', sessionId: 'S102', date: '2026-04-18', time: '11:05', type: 'Minisymposium', title: 'Payload-Linker Optimization for Next Generation ADCs', presenter: 'E. Morgan', org: 'VectorBio', topic: 'ADC', abstract: 'A linker-payload design framework is presented with preclinical efficacy and tolerability comparisons.', attachments: ['adc_payload_matrix.xlsx'], comments: ['Watch competitor pipeline overlap.'], starred: true },
+            { congress: 'ESMO2025', id: 'P3001', sessionId: 'S201', date: '2025-10-17', time: '08:45', type: 'Late Breaker', title: 'First-Line Combination Strategy in Metastatic Melanoma', presenter: 'N. Silva', org: 'Lisbon Oncology Group', topic: 'Melanoma', abstract: 'Late-breaking phase III data evaluate a combination strategy against standard checkpoint blockade.', attachments: ['press_release.pdf'], comments: [], starred: false }
+        ].sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+
+        const fmtDate = (value) => new Date(value + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+        const getConference = (congress) => conferences.find(c => c.congress === congress) || conferences[0];
+        const defaultCongress = conferences[0].congress;
+
+        const Header = () => {
+            const location = useLocation();
+            const navCongress = location.pathname.split('/')[2] || defaultCongress;
+            const active = (keys) => keys.some(k => location.pathname === k || location.pathname.startsWith(k + '/'));
+            return (
+                <header className="w-full sticky top-0 z-50 bg-surface/80 backdrop-blur-md border-b border-outline-variant">
+                    <div className="flex justify-between items-center px-6 h-16 border-b border-outline-variant/30">
+                        <div className="flex items-center gap-6 min-w-0">
+                            <Link to="/" className="flex flex-col shrink-0">
+                                <span className="text-xl font-extrabold text-primary leading-tight uppercase tracking-tight font-headline">Congress Lens</span>
+                                <p className="text-[9px] text-secondary font-semibold uppercase tracking-widest font-label">Conference Intelligence</p>
+                            </Link>
+                            <div className="h-8 w-px bg-outline-variant hidden md:block"></div>
+                            <nav className="flex items-center h-16 gap-1 overflow-x-auto">
+                                <Link to={`/session/${navCongress}`} className={`flex items-center gap-2 px-4 h-full transition-all text-sm font-medium border-b-2 ${active(['/session']) ? 'text-primary border-primary' : 'text-on-surface-variant border-transparent hover:text-primary'}`}>
+                                    <span className="material-symbols-outlined text-xl">list_alt</span><span>sessions</span>
+                                </Link>
+                                <Link to={`/presetation/${navCongress}`} className={`flex items-center gap-2 px-4 h-full transition-all text-sm font-medium border-b-2 ${active(['/presetation']) ? 'text-primary border-primary' : 'text-on-surface-variant border-transparent hover:text-primary'}`}>
+                                    <span className="material-symbols-outlined text-xl">table_view</span><span>presentations</span>
+                                </Link>
+                                <Link to="/star" className={`flex items-center gap-2 px-4 h-full transition-all text-sm font-medium border-b-2 ${active(['/star']) ? 'text-primary border-primary' : 'text-on-surface-variant border-transparent hover:text-primary'}`}>
+                                    <span className="material-symbols-outlined text-xl">star</span><span>star</span>
+                                </Link>
+                            </nav>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <div className="hidden lg:flex items-center bg-surface-container-low rounded px-3 py-1.5 border border-outline-variant w-56 focus-within:border-primary transition-colors">
+                                <span className="material-symbols-outlined text-on-surface-variant text-sm">search</span>
+                                <input className="bg-transparent border-none focus:ring-0 text-sm w-full placeholder:text-outline text-on-surface" placeholder="Search presentations..." type="text" />
+                            </div>
+                            <button className="material-symbols-outlined text-on-surface-variant hover:text-secondary transition-colors p-1.5 rounded">notifications</button>
+                            <button className="material-symbols-outlined text-on-surface-variant hover:text-secondary transition-colors p-1.5 rounded">settings</button>
+                            <div className="flex items-center gap-2 hover:bg-surface-container-high p-1 pr-2 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-outline-variant">
+                                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-xs font-bold border-2 border-primary-container">CL</div>
+                                <span className="text-sm font-semibold text-on-surface hidden sm:inline">Dr. Aris Thorne</span>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+            );
+        };
+
+        const ConferenceBadge = ({ conf }) => <span className="px-2.5 py-1 bg-surface-container-high text-on-surface-variant text-[10px] rounded-lg font-bold uppercase tracking-wider border border-outline-variant">{conf.abbr} {conf.year}</span>;
+
+        const Dashboard = () => {
+            const [selected, setSelected] = useState(defaultCongress);
+            const conf = getConference(selected);
+            const confSessions = sessionRows.filter(s => s.congress === selected);
+            const confPresentations = presentations.filter(p => p.congress === selected);
+            const groupedDays = [...new Set([...confSessions.map(s => s.date), ...confPresentations.map(p => p.date)])].sort();
+            return (
+                <main className="min-h-[calc(100vh-112px)] bg-background p-6 md:p-10 max-w-[1440px] mx-auto w-full">
+                    <div className="space-y-8 pt-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                            <div>
+                                <p className="font-mono text-[11px] text-brand-magenta uppercase tracking-[0.2em] mb-1 font-bold">Dashboard</p>
+                                <h3 className="text-3xl md:text-4xl font-bold text-brand-blue tracking-tight">Imported Conference Workspace</h3>
+                                <p className="text-on-surface-variant mt-2">Left side lists imported congresses by date; right side shows the selected congress calendar.</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button className="bg-surface-container-lowest border border-outline-variant px-5 py-2.5 rounded-xl flex items-center gap-2 hover:bg-surface-container transition-all text-on-surface text-sm font-semibold">
+                                    <span className="material-symbols-outlined text-[20px]">upload_file</span><span>Import Congress</span>
+                                </button>
+                                <button className="bg-brand-blue hover:bg-brand-blue/90 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-brand-blue/20 text-sm font-semibold">
+                                    <span className="material-symbols-outlined text-[20px]">sync</span><span>Refresh API</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-12 gap-6">
+                            <aside className="col-span-12 lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm">
+                                <div className="flex items-center justify-between mb-6">
+                                    <h4 className="text-xl font-bold text-brand-blue">Imported Conferences</h4>
+                                    <span className="text-xs font-bold text-secondary uppercase tracking-widest">Sorted by date</span>
+                                </div>
+                                <div className="space-y-4">
+                                    {conferences.map(c => (
+                                        <button key={c.congress} onClick={() => setSelected(c.congress)} className={`w-full text-left p-5 rounded-xl border transition-all group ${selected === c.congress ? 'bg-primary/5 border-primary shadow-sm' : 'bg-surface-container-low border-outline-variant hover:border-primary/40'}`}>
+                                            <div className="flex justify-between items-start gap-3 mb-3">
+                                                <div>
+                                                    <p className="font-mono text-[11px] text-secondary uppercase tracking-wider font-bold">{c.dateRange}</p>
+                                                    <h5 className="text-lg font-extrabold text-on-surface group-hover:text-primary leading-snug">{c.name}</h5>
+                                                </div>
+                                                <ConferenceBadge conf={c}/>
+                                            </div>
+                                            <p className="text-sm text-on-surface-variant line-clamp-2">{c.theme}</p>
+                                            <div className="flex items-center gap-4 mt-4 text-xs text-on-surface-variant">
+                                                <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm">location_on</span>{c.location}</span>
+                                                <span>{c.sessions} sessions</span><span>{c.presentations} presentations</span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </aside>
+                            <section className="col-span-12 lg:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
+                                <div className="p-6 border-b border-outline-variant bg-surface-container-low flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-1"><span className="material-symbols-outlined text-brand-blue">calendar_month</span><h4 className="text-xl font-bold text-brand-blue">{conf.name}</h4></div>
+                                        <p className="text-sm text-on-surface-variant">{conf.dateRange} • {conf.location}</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Link to={`/session/${conf.congress}`} className="px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold text-primary hover:bg-surface-container-high">Sessions</Link>
+                                        <Link to={`/presetation/${conf.congress}`} className="px-4 py-2 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90">Presentations</Link>
+                                    </div>
+                                </div>
+                                <div className="overflow-x-auto custom-scrollbar">
+                                    <div className="min-w-[880px]">
+                                        <div className="calendar-grid bg-surface-container-low border-b border-outline-variant">
+                                            <div className="h-12"></div>
+                                            {groupedDays.slice(0,5).map(day => <div key={day} className="h-12 flex items-center justify-center border-r border-outline-variant"><span className="font-label text-xs text-on-surface-variant uppercase tracking-wider">{fmtDate(day).replace(', 2026','').replace(', 2025','')}</span></div>)}
+                                        </div>
+                                        <div className="calendar-grid bg-surface-container-lowest">
+                                            {['08:00','10:00','13:00','15:00'].map(slot => (
+                                                <React.Fragment key={slot}>
+                                                    <div className="calendar-cell flex justify-end pr-4 pt-3 text-on-surface-variant font-label text-xs font-medium">{slot}</div>
+                                                    {groupedDays.slice(0,5).map(day => {
+                                                        const hitS = confSessions.find(s => s.date === day && s.time.startsWith(slot.slice(0,2)));
+                                                        const hitP = confPresentations.find(p => p.date === day && p.time.startsWith(slot.slice(0,2)));
+                                                        return <div key={day + slot} className="calendar-cell relative p-2 min-h-[86px]">
+                                                            {hitS && <Link to={`/session/${selected}?session=${hitS.id}`} className="block bg-primary/5 border-l-4 border-primary p-2.5 rounded-lg hover:bg-primary/10"><p className="text-[10px] font-bold text-primary uppercase tracking-widest">SESSION</p><p className="text-xs font-bold line-clamp-2">{hitS.title}</p></Link>}
+                                                            {!hitS && hitP && <Link to={`/presetation/${selected}/${hitP.id}`} className="block bg-secondary/5 border-l-4 border-secondary p-2.5 rounded-lg hover:bg-secondary/10"><p className="text-[10px] font-bold text-secondary uppercase tracking-widest">PRESENTATION</p><p className="text-xs font-bold line-clamp-2">{hitP.title}</p></Link>}
+                                                        </div>;
+                                                    })}
+                                                </React.Fragment>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+                </main>
+            );
+        };
+
+        const PageShell = ({title, subtitle, congress, children}) => {
+            const conf = getConference(congress || defaultCongress);
+            return <main className="flex-1 p-6 md:p-10 max-w-[1440px] mx-auto w-full">
+                <header className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                    <div><p className="font-mono text-[11px] text-brand-magenta uppercase tracking-[0.2em] mb-1 font-bold">{conf.name}</p><h1 className="text-4xl font-bold text-primary tracking-tight">{title}</h1><p className="text-on-surface-variant mt-2 max-w-3xl">{subtitle}</p></div>
+                    <select value={conf.congress} onChange={(e) => window.location.hash = `#/${title.toLowerCase().startsWith('session') ? 'session' : 'presetation'}/${e.target.value}`} className="rounded-xl border-outline-variant bg-surface-container-lowest text-sm font-semibold">
+                        {conferences.map(c => <option key={c.congress} value={c.congress}>{c.name}</option>)}
+                    </select>
+                </header>
+                {children}
+            </main>;
+        };
+
+        const PresentationTable = ({rows, showConference=false}) => <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto custom-scrollbar max-h-[calc(100vh-260px)]">
+                <table className="w-full min-w-[1060px] text-left table-sticky">
+                    <thead className="bg-surface-container-low border-b border-outline-variant">
+                        <tr className="text-xs uppercase tracking-widest text-on-surface-variant font-label">
+                            <th className="px-4 py-3 bg-surface-container-low">Star</th>{showConference && <th className="px-4 py-3 bg-surface-container-low">Congress</th>}<th className="px-4 py-3 bg-surface-container-low">Time</th><th className="px-4 py-3 bg-surface-container-low">Type</th><th className="px-4 py-3 bg-surface-container-low">Title</th><th className="px-4 py-3 bg-surface-container-low">Presenter</th><th className="px-4 py-3 bg-surface-container-low">Topic</th><th className="px-4 py-3 bg-surface-container-low">Files</th><th className="px-4 py-3 bg-surface-container-low">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant">
+                        {rows.map(p => <tr key={p.id} className="hover:bg-surface-container-low transition-colors">
+                            <td className="px-4 py-4"><span className={`material-symbols-outlined ${p.starred ? 'text-secondary' : 'text-outline'}`}>star</span></td>
+                            {showConference && <td className="px-4 py-4 font-mono text-xs text-primary font-bold">{p.congress}</td>}
+                            <td className="px-4 py-4 whitespace-nowrap"><div className="text-sm font-bold">{fmtDate(p.date)}</div><div className="text-xs text-on-surface-variant">{p.time}</div></td>
+                            <td className="px-4 py-4"><span className="px-2 py-1 bg-secondary/10 text-secondary rounded-lg text-[10px] font-bold uppercase tracking-wider">{p.type}</span></td>
+                            <td className="px-4 py-4 max-w-md"><Link to={`/presetation/${p.congress}/${p.id}`} className="font-bold text-on-surface hover:text-primary leading-snug">{p.title}</Link><p className="text-xs text-on-surface-variant mt-1 line-clamp-1">{p.abstract}</p></td>
+                            <td className="px-4 py-4"><div className="font-semibold text-sm">{p.presenter}</div><div className="text-xs text-on-surface-variant">{p.org}</div></td>
+                            <td className="px-4 py-4 text-sm text-on-surface-variant">{p.topic}</td>
+                            <td className="px-4 py-4 text-sm font-mono text-on-surface-variant">{p.attachments.length}</td>
+                            <td className="px-4 py-4"><Link to={`/presetation/${p.congress}/${p.id}`} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary/90"><span className="material-symbols-outlined text-sm">open_in_new</span>Detail</Link></td>
+                        </tr>)}
+                    </tbody>
+                </table>
+            </div>
+        </div>;
+
+        const PresentationsPage = () => {
+            const { congress } = useParams();
+            const rows = presentations.filter(p => p.congress === (congress || defaultCongress));
+            return <PageShell title="Presentations" subtitle="All presentation records are displayed as a table, with drill-down detail pages for text, attachments and user comments." congress={congress}><PresentationTable rows={rows}/></PageShell>;
+        };
+
+        const PresentationDetail = () => {
+            const { congress, id } = useParams();
+            const p = presentations.find(x => x.congress === congress && x.id === id) || presentations[0];
+            const session = sessionRows.find(s => s.id === p.sessionId);
+            return <main className="flex-1 p-6 md:p-10 max-w-[1440px] mx-auto w-full">
+                <div className="mb-6"><Link to={`/presetation/${p.congress}`} className="text-sm font-bold text-primary hover:underline flex items-center gap-1"><span className="material-symbols-outlined text-sm">arrow_back</span>Back to presentations</Link></div>
+                <article className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden shadow-sm">
+                    <header className="p-8 bg-surface-container-low border-b border-outline-variant">
+                        <div className="flex items-start justify-between gap-4 mb-4"><span className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-[10px] font-bold uppercase tracking-widest border border-secondary/20">{p.type} • {p.id}</span><span className={`material-symbols-outlined text-3xl ${p.starred ? 'text-secondary' : 'text-outline'}`}>star</span></div>
+                        <h1 className="text-3xl md:text-4xl font-extrabold text-primary tracking-tight mb-4">{p.title}</h1>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm"><div><p className="text-xs uppercase text-on-surface-variant font-bold">Presenter</p><p className="font-bold">{p.presenter}</p><p className="text-on-surface-variant">{p.org}</p></div><div><p className="text-xs uppercase text-on-surface-variant font-bold">Schedule</p><p className="font-bold">{fmtDate(p.date)} {p.time}</p></div><div><p className="text-xs uppercase text-on-surface-variant font-bold">Session</p><p className="font-bold">{session ? session.title : 'Unassigned Session'}</p></div><div><p className="text-xs uppercase text-on-surface-variant font-bold">Topic</p><p className="font-bold">{p.topic}</p></div></div>
+                    </header>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
+                        <section className="lg:col-span-2 p-8 space-y-8">
+                            <div><h2 className="text-xl font-bold text-primary mb-3">Full Text / Abstract</h2><p className="text-on-surface-variant leading-relaxed bg-surface-container-low rounded-xl p-5 border border-outline-variant">{p.abstract}</p></div>
+                            <div><h2 className="text-xl font-bold text-primary mb-3">Structured Intelligence Notes</h2><div className="grid md:grid-cols-2 gap-4"><div className="p-5 rounded-xl bg-surface-container-low border border-outline-variant"><p className="text-xs uppercase tracking-widest text-secondary font-bold mb-2">Evidence</p><p className="text-sm text-on-surface-variant">Clinical relevance, biomarker signal, target/pathway context and competitive implication can be stored here.</p></div><div className="p-5 rounded-xl bg-surface-container-low border border-outline-variant"><p className="text-xs uppercase tracking-widest text-secondary font-bold mb-2">Follow-up</p><p className="text-sm text-on-surface-variant">Add tasks for patent review, guideline mapping, company tracking or expert interview.</p></div></div></div>
+                        </section>
+                        <aside className="p-8 border-t lg:border-t-0 lg:border-l border-outline-variant bg-surface">
+                            <h2 className="text-xl font-bold text-primary mb-4">Supporting Attachments</h2>
+                            <div className="space-y-3 mb-8">{p.attachments.map(file => <div key={file} className="p-3 rounded-xl bg-surface-container-lowest border border-outline-variant flex items-center justify-between"><span className="flex items-center gap-2 text-sm font-semibold"><span className="material-symbols-outlined text-primary">attach_file</span>{file}</span><button className="material-symbols-outlined text-on-surface-variant text-sm">download</button></div>)}</div>
+                            <h2 className="text-xl font-bold text-primary mb-4">User Comments</h2>
+                            <div className="space-y-3">{(p.comments.length ? p.comments : ['No comments yet.']).map((c, i) => <div key={i} className="p-4 rounded-xl bg-surface-container-low border border-outline-variant text-sm text-on-surface-variant">{c}</div>)}</div>
+                            <textarea className="mt-4 w-full rounded-xl border-outline-variant bg-white text-sm" rows="4" placeholder="Add comment..."></textarea><button className="mt-3 w-full bg-primary text-white rounded-xl py-2.5 text-sm font-bold">Save Comment</button>
+                        </aside>
+                    </div>
+                </article>
+            </main>;
+        };
+
+        const SessionsPage = () => {
+            const { congress } = useParams();
+            const location = useLocation();
+            const querySession = new URLSearchParams(location.search).get('session');
+            const [open, setOpen] = useState(querySession);
+            useEffect(() => { if (querySession) setOpen(querySession); }, [querySession]);
+            const rows = sessionRows.filter(s => s.congress === (congress || defaultCongress));
+            return <PageShell title="Sessions" subtitle="Sessions are sorted by time. Click a session row to expand all linked presentations and jump to presentation detail pages." congress={congress}>
+                <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden shadow-sm divide-y divide-outline-variant">
+                    {rows.map(s => { const ps = presentations.filter(p => p.sessionId === s.id); const isOpen = open === s.id; return <div key={s.id}>
+                        <button onClick={() => setOpen(isOpen ? null : s.id)} className="w-full p-5 hover:bg-surface-container-low transition-colors text-left grid grid-cols-12 gap-4 items-center">
+                            <div className="col-span-12 md:col-span-2"><p className="font-mono text-xs text-secondary font-bold">{fmtDate(s.date)}</p><p className="text-sm font-bold">{s.time} - {s.end}</p></div>
+                            <div className="col-span-12 md:col-span-2"><span className="px-2 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-bold uppercase tracking-wider">{s.type}</span></div>
+                            <div className="col-span-12 md:col-span-5"><h3 className="text-lg font-bold text-on-surface hover:text-primary">{s.title}</h3><p className="text-sm text-on-surface-variant">{s.track} • {s.room}</p></div>
+                            <div className="col-span-8 md:col-span-2 text-sm text-on-surface-variant">{ps.length} presentations</div>
+                            <div className="col-span-4 md:col-span-1 text-right"><span className="material-symbols-outlined text-primary">{isOpen ? 'expand_less' : 'expand_more'}</span></div>
+                        </button>
+                        {isOpen && <div className="px-5 pb-5 bg-surface-container-low"><div className="rounded-xl border border-outline-variant overflow-hidden bg-white"><PresentationTable rows={ps}/></div></div>}
+                    </div>})}
+                </div>
+            </PageShell>;
+        };
+
+        const StarPage = () => <PageShell title="Starred Presentations" subtitle="Current user followed presentation list, replacing the old archives page." congress={defaultCongress}><PresentationTable rows={presentations.filter(p => p.starred)} showConference={true}/></PageShell>;
+        const SearchPage = () => <main className="flex-1 p-6 md:p-10 max-w-[1200px] mx-auto w-full"><h1 className="text-4xl font-bold text-primary tracking-tight mb-3">Search</h1><p className="text-on-surface-variant mb-6">Search box placeholder for sessions, presentations, authors, attachments and user comments.</p><div className="bg-white border border-outline-variant rounded-2xl p-6 flex items-center gap-3"><span className="material-symbols-outlined text-primary">search</span><input className="flex-1 border-none focus:ring-0 text-lg" placeholder="Search Congress Lens..."/></div></main>;
+
+        const App = () => <HashRouter>
+            <div className="min-h-screen flex flex-col bg-background">
+                <Header />
+                <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/session/:congress" element={<SessionsPage />} />
+                    <Route path="/presetation/:congress" element={<PresentationsPage />} />
+                    <Route path="/presetation/:congress/:id" element={<PresentationDetail />} />
+                    <Route path="/star" element={<StarPage />} />
+                    <Route path="*" element={<Dashboard />} />
+                </Routes>
+                <footer className="p-6 border-t border-outline-variant bg-surface-container-lowest mt-auto">
+                    <div className="flex flex-col md:flex-row justify-between items-center gap-6 max-w-[1440px] mx-auto">
+                        <div className="flex items-center gap-4"><span className="text-primary font-bold uppercase tracking-tight">Congress Lens</span><span className="text-on-surface-variant text-sm">© 2026 Conference Intelligence Systems. All rights reserved.</span></div>
+                        <div className="flex gap-8 text-sm font-medium text-on-surface-variant"><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a><a href="#" className="hover:text-primary transition-colors">Terms</a><a href="#" className="hover:text-primary transition-colors">Support</a></div>
+                    </div>
+                </footer>
+            </div>
+        </HashRouter>;
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -13,13 +13,16 @@ async def import_presentations(
     source: str,
     folder_path: str,
     max_files: int = 0,
+    offset: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
     importer_cls = IMPORTERS.get(source)
     if not importer_cls:
         raise HTTPException(400, f"Unknown importer source: {source}")
     importer = importer_cls(db)
-    result = await importer.import_folder(conference_id, folder_path, max_files=max_files)
+    result = await importer.import_folder(
+        conference_id, folder_path, max_files=max_files, offset=offset
+    )
     return result
 
 
@@ -29,22 +32,18 @@ async def import_sessions(
     source: str,
     folder_path: str,
     max_files: int = 0,
+    offset: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
-    """Import session records from a conference data source.
-
-    Only AACR has separate session files. ASCO sessions are auto-created
-    during presentation import from embedded fields."""
     importer_cls = IMPORTERS.get(source)
     if not importer_cls:
         raise HTTPException(400, f"Unknown importer source: {source}")
 
     importer = importer_cls(db)
 
-    # Only AACR has a dedicated session import method
     if hasattr(importer, "import_sessions_folder"):
         result = await importer.import_sessions_folder(
-            conference_id, folder_path, max_files=max_files
+            conference_id, folder_path, max_files=max_files, offset=offset
         )
         return result
 

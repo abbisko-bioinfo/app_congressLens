@@ -20,9 +20,9 @@ from app.models.topic import Topic
 
 class AACRImporter(BaseImporter):
     async def import_folder(
-        self, conference_id: str, folder_path: str, max_files: int = 0
+        self, conference_id: str, folder_path: str, max_files: int = 0, offset: int = 0
     ) -> dict:
-        """Import presentation JSON files from the folder. max_files=0 means unlimited."""
+        """Import presentation JSON files. max_files=0: unlimited, offset=N: skip first N."""
         conference_uuid = conference_id
         conference = await self.db.get(Conference, conference_uuid)
         if not conference:
@@ -61,14 +61,20 @@ class AACRImporter(BaseImporter):
 
         batch = 0
         processed = 0
+        skipped_offset = 0
         for json_file in sorted(path.glob("**/*.json")):
             if max_files and processed >= max_files:
                 break
-            # Skip non-presentation subdirectories
             if json_file.parent.name in skip_dirs:
+                continue
+            # Skip first `offset` valid files
+            if skipped_offset < offset:
+                skipped_offset += 1
                 continue
             try:
                 data = json.loads(json_file.read_text())
+                if not data.get("Id"):
+                    continue
                 await self._import_record(conference_uuid, data, results)
                 batch += 1
                 processed += 1
