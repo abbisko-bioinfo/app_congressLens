@@ -1,101 +1,296 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState, Fragment } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../api/client";
+import { useQuery } from "@tanstack/react-query";
+import { api, Conference, Session, Presentation } from "../api/client";
+import ConferenceBadge from "../components/ConferenceBadge";
+
+function fmtDate(value: string): string {
+  return new Date(value + "T00:00:00").toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+}
+
+function getCongressId(conf: Conference): string {
+  return conf.acronym.toLowerCase().replace(/\s+/g, "") + "-" + conf.year;
+}
 
 export default function Dashboard() {
-  const { data: recentPres } = useQuery({ queryKey: ["presentations", "recent"], queryFn: () => api.presentations.list({ skip: "0", limit: "10" }) });
-  const { data: conferences } = useQuery({ queryKey: ["conferences"], queryFn: () => api.conferences.list(0, 5) });
-  const { data: watchlist } = useQuery({ queryKey: ["watchlist"], queryFn: () => api.watchlist.list() });
+  const { data: confData } = useQuery({
+    queryKey: ["conferences"],
+    queryFn: () => api.conferences.list(),
+  });
 
+  const conferences: Conference[] = confData?.items ?? [];
+  const [selected, setSelected] = useState<string>(
+    conferences[0] ? getCongressId(conferences[0]) : ""
+  );
 
-  const watchedPresentations = watchlist?.filter((w) => w.target_type === "presentation") || [];
-  const watchedSessions = watchlist?.filter((w) => w.target_type === "session") || [];
+  // Update selected when conferences load
+  if (conferences.length > 0 && !selected) {
+    setSelected(getCongressId(conferences[0]));
+  }
+
+  const conf = conferences.find((c) => getCongressId(c) === selected);
+
+  const { data: sessionData } = useQuery({
+    queryKey: ["sessions", conf?.id],
+    queryFn: () => api.sessions.list(conf?.id),
+    enabled: !!conf,
+  });
+
+  const { data: presData } = useQuery({
+    queryKey: ["presentations", conf?.id],
+    queryFn: () =>
+      api.presentations.list({ conference_id: conf?.id ?? "", limit: "50" }),
+    enabled: !!conf,
+  });
+
+  const confSessions: Session[] = sessionData?.items ?? [];
+  const confPresentations: Presentation[] = presData?.items ?? [];
+
+  // Group dates from sessions and presentations
+  const groupedDays = [
+    ...new Set([
+      ...confSessions
+        .filter((s) => s.start_time)
+        .map((s) => s.start_time!.split("T")[0]),
+      ...confPresentations
+        .filter((p) => p.start_time)
+        .map((p) => p.start_time!.split("T")[0]),
+    ]),
+  ].sort();
+
+  const timeSlots = ["08:00", "10:00", "13:00", "15:00"];
 
   return (
-    <div className="p-6 space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-
-      <section>
-        <h2 className="text-lg font-semibold text-gray-700 mb-3">Watched Presentations</h2>
-        {watchedPresentations.length === 0 ? (
-          <p className="text-sm text-gray-400">No watched presentations yet. Use the watch button on a presentation to add it here.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 py-2 text-left text-gray-600 font-medium">ID</th>
-                <th className="px-3 py-2 text-left text-gray-600 font-medium">Type</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {watchedPresentations.map((w) => (
-                <tr key={w.id} className="hover:bg-gray-50">
-                  <td className="px-3 py-2"><Link to={`/presentations/${w.target_id}`} className="text-blue-600 hover:underline">{w.target_id.slice(0, 8)}...</Link></td>
-                  <td className="px-3 py-2"><span className="inline-block px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-700">{w.target_type}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-
-      <section>
-        <h2 className="text-lg font-semibold text-gray-700 mb-3">Upcoming Watched Sessions</h2>
-        {watchedSessions.length === 0 ? (
-          <p className="text-sm text-gray-400">No watched sessions yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {watchedSessions.map((w) => (
-              <Link key={w.id} to={`/sessions/${w.target_id}`} className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
-                <span className="inline-block px-2 py-0.5 rounded text-xs bg-green-100 text-green-700 mb-2">session</span>
-                <div className="text-xs text-gray-500">ID: {w.target_id.slice(0, 8)}...</div>
-              </Link>
-            ))}
+    <main className="min-h-[calc(100vh-112px)] bg-background p-5 sm:p-8 lg:p-10 max-w-[1360px] mx-auto w-full">
+      <div className="space-y-8 pt-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <div>
+            <p className="text-[12px] text-brand-magenta uppercase mb-1 font-bold">
+              Dashboard
+            </p>
+            <h3 className="text-3xl md:text-4xl font-bold text-brand-blue">
+              Imported Conference Workspace
+            </h3>
+            <p className="text-on-surface-variant mt-2">
+              Left side lists imported congresses by date; right side shows the
+              selected congress calendar.
+            </p>
           </div>
-        )}
-      </section>
-
-      <section>
-        <h2 className="text-lg font-semibold text-gray-700 mb-3">Recent Conferences</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {conferences?.items?.map((c) => (
-            <Link key={c.id} to={`/conferences/${c.id}`} className="block p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-400 transition-colors">
-              <div className="font-semibold text-gray-900">{c.acronym} {c.year}</div>
-              <div className="text-sm text-gray-600 mt-1">{c.name}</div>
-              {c.location && <div className="text-xs text-gray-400 mt-1">{c.location}</div>}
-            </Link>
-          ))}
+          <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+            <button
+              className="bg-surface-container-lowest border border-outline-variant px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-surface-container transition-all text-on-surface text-sm font-semibold w-full sm:w-auto"
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                upload_file
+              </span>
+              <span>Import Congress</span>
+            </button>
+            <button
+              className="bg-brand-magenta hover:bg-brand-magenta/90 text-on-primary px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-brand-magenta/20 text-sm font-semibold w-full sm:w-auto"
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                sync
+              </span>
+              <span>Refresh API</span>
+            </button>
+          </div>
         </div>
-      </section>
 
-      <section>
-        <h2 className="text-lg font-semibold text-gray-700 mb-3">Recent Presentations</h2>
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-3 py-2 text-left text-gray-600 font-medium">Title</th>
-              <th className="px-3 py-2 text-left text-gray-600 font-medium">Type</th>
-              <th className="px-3 py-2 text-left text-gray-600 font-medium">Presenter</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {recentPres?.items?.map((p) => (
-              <tr key={p.id} className="hover:bg-gray-50">
-                <td className="px-3 py-2"><Link to={`/presentations/${p.id}`} className="text-blue-600 hover:underline">{p.title}</Link></td>
-                <td className="px-3 py-2 text-gray-600">{p.presentation_type || "-"}</td>
-                <td className="px-3 py-2 text-gray-600">{p.presenter_name || "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+        <div className="grid grid-cols-12 gap-6">
+          {/* Conference Cards */}
+          <aside
+            className="col-span-12 lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="text-xl font-bold text-brand-blue">
+                Imported Conferences
+              </h4>
+              <span className="text-xs font-bold text-secondary uppercase">
+                Sorted by date
+              </span>
+            </div>
+            <div className="space-y-4">
+              {conferences.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setSelected(getCongressId(c))}
+                  className={`w-full text-left p-5 rounded-xl border transition-all group ${
+                    selected === getCongressId(c)
+                      ? "bg-primary/5 border-primary shadow-sm"
+                      : "bg-surface-container-low border-outline-variant hover:border-primary/40"
+                  }`}
+                >
+                  <div className="flex justify-between items-start gap-3 mb-3">
+                    <div>
+                      <p className="text-[12px] text-secondary uppercase font-bold">
+                        {c.start_date && c.end_date
+                          ? `${fmtDate(c.start_date)} – ${fmtDate(c.end_date)}`
+                          : ""}
+                      </p>
+                      <h5
+                        className="text-lg font-extrabold text-on-surface group-hover:text-primary leading-snug"
+                      >
+                        {c.name}
+                      </h5>
+                    </div>
+                    <ConferenceBadge conf={c} />
+                  </div>
+                  <p className="text-sm text-on-surface-variant line-clamp-2">
+                    {c.description || ""}
+                  </p>
+                  <div
+                    className="flex items-center gap-4 mt-4 text-xs text-on-surface-variant"
+                  >
+                    {c.location && (
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-sm">
+                          location_on
+                        </span>
+                        {c.location}
+                      </span>
+                    )}
+                    <span>{confSessions.length} sessions</span>
+                    <span>{confPresentations.length} presentations</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </aside>
 
-      <section>
-        <h2 className="text-lg font-semibold text-gray-700 mb-3">AI Insights</h2>
-        <div className="p-6 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-sm text-gray-500">AI-powered conference intelligence is coming soon. This panel will show trend analysis, entity extraction, and insight dashboards.</p>
+          {/* Calendar Grid */}
+          <section
+            className="col-span-12 lg:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-2xl overflow-hidden shadow-sm"
+          >
+            {conf ? (
+              <>
+                <div
+                  className="p-6 border-b border-outline-variant bg-surface-container-low flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                >
+                  <div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="material-symbols-outlined text-brand-blue">
+                        calendar_month
+                      </span>
+                      <h4 className="text-xl font-bold text-brand-blue">
+                        {conf.name}
+                      </h4>
+                    </div>
+                    <p className="text-sm text-on-surface-variant">
+                      {conf.start_date && conf.end_date
+                        ? `${fmtDate(conf.start_date)} – ${fmtDate(conf.end_date)}`
+                        : ""}
+                      {conf.location ? ` • ${conf.location}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Link
+                      to={`/session/${getCongressId(conf)}`}
+                      className="px-4 py-2 bg-on-surface border border-outline-variant rounded-xl text-sm font-bold text-primary hover:bg-surface-container-high"
+                    >
+                      Sessions
+                    </Link>
+                    <Link
+                      to={`/presentations/${getCongressId(conf)}`}
+                      className="px-4 py-2 bg-primary text-on-primary rounded-xl text-sm font-bold hover:bg-primary/90"
+                    >
+                      Presentations
+                    </Link>
+                  </div>
+                </div>
+                <div className="overflow-x-auto custom-scrollbar">
+                  <div className="min-w-[880px]">
+                    <div
+                      className="calendar-grid bg-surface-container-low border-b border-outline-variant"
+                    >
+                      <div className="h-12"></div>
+                      {groupedDays.slice(0, 5).map((day) => (
+                        <div
+                          key={day}
+                          className="h-12 flex items-center justify-center border-r border-outline-variant"
+                        >
+                          <span className="font-label text-xs text-on-surface-variant uppercase">
+                            {fmtDate(day).replace(", 2026", "").replace(", 2025", "")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="calendar-grid bg-surface-container-lowest">
+                      {timeSlots.map((slot) => (
+                        <Fragment key={slot}>
+                          <div
+                            className="calendar-cell flex justify-end pr-4 pt-3 text-on-surface-variant font-label text-xs font-medium"
+                          >
+                            {slot}
+                          </div>
+                          {groupedDays.slice(0, 5).map((day) => {
+                            const hitS = confSessions.find(
+                              (s) =>
+                                s.start_time &&
+                                s.start_time.startsWith(day) &&
+                                s.start_time.includes(slot.slice(0, 2))
+                            );
+                            const hitP = confPresentations.find(
+                              (p) =>
+                                p.start_time &&
+                                p.start_time.startsWith(day) &&
+                                p.start_time.includes(slot.slice(0, 2))
+                            );
+                            return (
+                              <div
+                                key={day + slot}
+                                className="calendar-cell relative p-2 min-h-[86px]"
+                              >
+                                {hitS && (
+                                  <Link
+                                    to={`/session/${selected}?session=${hitS.id}`}
+                                    className="block bg-primary/5 border-l-4 border-primary p-2.5 rounded-lg hover:bg-primary/10"
+                                  >
+                                    <p className="text-[10px] font-bold text-primary uppercase">
+                                      SESSION
+                                    </p>
+                                    <p className="text-xs font-bold line-clamp-2">
+                                      {hitS.title}
+                                    </p>
+                                  </Link>
+                                )}
+                                {!hitS && hitP && (
+                                  <Link
+                                    to={`/presentations/${selected}/${hitP.id}`}
+                                    className="block bg-secondary/5 border-l-4 border-secondary p-2.5 rounded-lg hover:bg-secondary/10"
+                                  >
+                                    <p className="text-[10px] font-bold text-secondary uppercase">
+                                      PRESENTATION
+                                    </p>
+                                    <p className="text-xs font-bold line-clamp-2">
+                                      {hitP.title}
+                                    </p>
+                                  </Link>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </Fragment>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="p-12 text-center text-on-surface-variant">
+                <span className="material-symbols-outlined text-4xl mb-4 block">
+                  calendar_month
+                </span>
+                <p className="text-lg font-semibold">No conferences imported yet</p>
+                <p className="text-sm mt-2">Import a congress to see the calendar grid.</p>
+              </div>
+            )}
+          </section>
         </div>
-      </section>
-    </div>
+      </div>
+    </main>
   );
 }
