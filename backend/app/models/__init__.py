@@ -12,6 +12,7 @@ from app.models.annotation import Annotation
 from app.models.watchlist_item import WatchlistItem
 from app.models.ai_summary import AISummary
 from app.models.presentation_entity import PresentationEntity
+from app.auth.models import User
 
 __all__ = [
     "Base",

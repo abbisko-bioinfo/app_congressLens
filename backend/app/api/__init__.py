@@ -11,6 +11,7 @@ from app.api.presentation_attachments import router as presentation_attachments_
 from app.api.attachments import router as attachments_router
 from app.api.calendar import router as calendar_router
 from app.api.ai import router as ai_router
+from app.auth.routes import router as auth_router
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(health_router, tags=["health"])
@@ -24,3 +25,4 @@ api_router.include_router(presentation_attachments_router)
 api_router.include_router(attachments_router)
 api_router.include_router(calendar_router)
 api_router.include_router(ai_router)
+api_router.include_router(auth_router)
