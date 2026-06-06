@@ -91,14 +91,14 @@ class ASCOImporter(BaseImporter):
             try:
                 data = json.loads(json_file.read_text())
                 content = data.get("data", {}).get("getContentById", {}).get("result", data)
-                await self._import_record(conference_uuid, content, results)
+                async with self.db.begin_nested():
+                    await self._import_record(conference_uuid, content, results)
                 batch += 1
                 processed += 1
                 if batch % 500 == 0:
                     await self.db.commit()
                     self.db.expire_all()
             except Exception as e:
-                await self.db.rollback()
                 results["errors"].append(f"{json_file.name}: {str(e)}")
                 results["skipped"] += 1
 

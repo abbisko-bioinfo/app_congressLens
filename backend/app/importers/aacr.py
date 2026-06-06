@@ -75,14 +75,14 @@ class AACRImporter(BaseImporter):
                 data = json.loads(json_file.read_text())
                 if not data.get("Id"):
                     continue
-                await self._import_record(conference_uuid, data, results)
+                async with self.db.begin_nested():
+                    await self._import_record(conference_uuid, data, results)
                 batch += 1
                 processed += 1
                 if batch % 500 == 0:
                     await self.db.commit()
                     self.db.expire_all()
             except Exception as e:
-                await self.db.rollback()
                 results["errors"].append(f"{json_file.name}: {str(e)}")
                 results["skipped"] += 1
 
@@ -124,10 +124,10 @@ class AACRImporter(BaseImporter):
                 break
             try:
                 data = json.loads(json_file.read_text())
-                await self._import_session_record(conference_uuid, data, results)
+                async with self.db.begin_nested():
+                    await self._import_session_record(conference_uuid, data, results)
                 processed += 1
             except Exception as e:
-                await self.db.rollback()
                 results["errors"].append(f"{json_file.name}: {str(e)}")
                 results["skipped"] += 1
 
