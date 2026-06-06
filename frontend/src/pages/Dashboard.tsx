@@ -2,7 +2,7 @@ import { useState, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
-import type { Conference, Session, Presentation } from "../api/client";
+import type { Conference, Session } from "../api/client";
 import ConferenceBadge from "../components/ConferenceBadge";
 
 function fmtDate(value: string): string {
@@ -15,6 +15,10 @@ function fmtDate(value: string): string {
 
 function getCongressId(conf: Conference): string {
   return conf.acronym.toLowerCase().replace(/\s+/g, "") + "-" + conf.year;
+}
+
+function getCongressCode(conf: Conference): string {
+  return `${conf.acronym}${conf.year}`;
 }
 
 export default function Dashboard() {
@@ -41,25 +45,14 @@ export default function Dashboard() {
     enabled: !!conf,
   });
 
-  const { data: presData } = useQuery({
-    queryKey: ["presentations", conf?.id],
-    queryFn: () =>
-      api.presentations.list({ conference_id: conf?.id ?? "", limit: "50" }),
-    enabled: !!conf,
-  });
-
   const confSessions: Session[] = sessionData?.items ?? [];
-  const confPresentations: Presentation[] = presData?.items ?? [];
 
-  // Group dates from sessions and presentations
+  // Group dates from sessions only.
   const groupedDays = [
     ...new Set([
       ...confSessions
         .filter((s) => s.start_time)
         .map((s) => s.start_time!.split("T")[0]),
-      ...confPresentations
-        .filter((p) => p.start_time)
-        .map((p) => p.start_time!.split("T")[0]),
     ]),
   ].sort();
 
@@ -70,34 +63,13 @@ export default function Dashboard() {
       <div className="space-y-8 pt-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div>
-            <p className="text-[12px] text-brand-magenta uppercase mb-1 font-bold">
-              Dashboard
-            </p>
             <h3 className="text-3xl md:text-4xl font-bold text-brand-blue">
-              Imported Conference Workspace
+              Conference Workspace
             </h3>
             <p className="text-on-surface-variant mt-2">
               Left side lists imported congresses by date; right side shows the
               selected congress calendar.
             </p>
-          </div>
-          <div className="flex flex-wrap gap-3 w-full sm:w-auto">
-            <button
-              className="bg-surface-container-lowest border border-outline-variant px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-surface-container transition-all text-on-surface text-sm font-semibold w-full sm:w-auto"
-            >
-              <span className="material-symbols-outlined text-[20px]">
-                upload_file
-              </span>
-              <span>Import Congress</span>
-            </button>
-            <button
-              className="bg-brand-magenta hover:bg-brand-magenta/90 text-on-primary px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-brand-magenta/20 text-sm font-semibold w-full sm:w-auto"
-            >
-              <span className="material-symbols-outlined text-[20px]">
-                sync
-              </span>
-              <span>Refresh API</span>
-            </button>
           </div>
         </div>
 
@@ -106,14 +78,6 @@ export default function Dashboard() {
           <aside
             className="col-span-12 lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h4 className="text-xl font-bold text-brand-blue">
-                Imported Conferences
-              </h4>
-              <span className="text-xs font-bold text-secondary uppercase">
-                Sorted by date
-              </span>
-            </div>
             <div className="space-y-4">
               {conferences.map((c) => (
                 <button
@@ -133,15 +97,15 @@ export default function Dashboard() {
                           : ""}
                       </p>
                       <h5
-                        className="text-lg font-extrabold text-on-surface group-hover:text-primary leading-snug"
+                        className="text-xl font-extrabold text-on-surface group-hover:text-primary leading-snug"
                       >
-                        {c.name}
+                        {getCongressCode(c)}
                       </h5>
                     </div>
                     <ConferenceBadge conf={c} />
                   </div>
-                  <p className="text-sm text-on-surface-variant line-clamp-2">
-                    {c.description || ""}
+                  <p className="text-sm font-medium text-on-surface mt-1 line-clamp-2">
+                    {c.name}
                   </p>
                   <div
                     className="flex items-center gap-4 mt-4 text-xs text-on-surface-variant"
@@ -155,7 +119,6 @@ export default function Dashboard() {
                       </span>
                     )}
                     <span>{confSessions.length} sessions</span>
-                    <span>{confPresentations.length} presentations</span>
                   </div>
                 </button>
               ))}
@@ -177,9 +140,13 @@ export default function Dashboard() {
                         calendar_month
                       </span>
                       <h4 className="text-xl font-bold text-brand-blue">
-                        {conf.name}
+                        {getCongressCode(conf)}
                       </h4>
                     </div>
+                    <p className="text-sm text-on-surface-variant">
+                      {conf.name}
+                      {conf.description ? ` • ${conf.description}` : ""}
+                    </p>
                     <p className="text-sm text-on-surface-variant">
                       {conf.start_date && conf.end_date
                         ? `${fmtDate(conf.start_date)} – ${fmtDate(conf.end_date)}`
@@ -190,7 +157,7 @@ export default function Dashboard() {
                   <div className="flex gap-2">
                     <Link
                       to={`/session/${getCongressId(conf)}`}
-                      className="px-4 py-2 bg-on-surface border border-outline-variant rounded-xl text-sm font-bold text-primary hover:bg-surface-container-high"
+                      className="px-4 py-2 bg-primary text-on-primary rounded-xl text-sm font-bold hover:bg-primary/90"
                     >
                       Sessions
                     </Link>
@@ -234,12 +201,6 @@ export default function Dashboard() {
                                 s.start_time.startsWith(day) &&
                                 s.start_time.includes(slot.slice(0, 2))
                             );
-                            const hitP = confPresentations.find(
-                              (p) =>
-                                p.start_time &&
-                                p.start_time.startsWith(day) &&
-                                p.start_time.includes(slot.slice(0, 2))
-                            );
                             return (
                               <div
                                 key={day + slot}
@@ -255,19 +216,6 @@ export default function Dashboard() {
                                     </p>
                                     <p className="text-xs font-bold line-clamp-2">
                                       {hitS.title}
-                                    </p>
-                                  </Link>
-                                )}
-                                {!hitS && hitP && (
-                                  <Link
-                                    to={`/presentations/${selected}/${hitP.id}`}
-                                    className="block bg-secondary/5 border-l-4 border-secondary p-2.5 rounded-lg hover:bg-secondary/10"
-                                  >
-                                    <p className="text-[10px] font-bold text-secondary uppercase">
-                                      PRESENTATION
-                                    </p>
-                                    <p className="text-xs font-bold line-clamp-2">
-                                      {hitP.title}
                                     </p>
                                   </Link>
                                 )}
